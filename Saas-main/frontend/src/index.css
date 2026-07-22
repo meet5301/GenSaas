@@ -1891,7 +1891,87 @@ input:focus, textarea:focus, select:focus {
   box-sizing: border-box;
 }
 
-/* Tablet & Medium Screens (< 1024px) */
+/* Page Helper Component Classes */
+.parsed-preview-card {
+  margin-top: 1.5rem;
+  max-width: 640px;
+  width: 100%;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-md);
+  box-sizing: border-box;
+}
+
+.parsed-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  font-size: 0.83rem;
+}
+
+.pricing-section {
+  margin-top: 4rem;
+  background-color: var(--color-bg-base);
+  border-radius: 24px;
+  padding: 3rem 2rem;
+  box-sizing: border-box;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.pricing-card {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.pricing-card-pro {
+  background-color: var(--color-bg-card);
+  border: 2px solid var(--color-accent-red);
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Touch Targets & Base Minimum Heights */
+button, input, select, textarea, .btn, .tab-btn {
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+/* Fluid Typography with clamp() */
+.hero-main-title {
+  font-size: clamp(1.8rem, 5vw, 4rem) !important;
+}
+
+.section-title, .contact-section-title {
+  font-size: clamp(1.4rem, 3.5vw, 2.5rem) !important;
+}
+
+.hero-desc {
+  font-size: clamp(0.9rem, 2vw, 1.1rem) !important;
+}
+
+/* ==========================================================================
+   Standardized Breakpoints: 1024px (Laptop/Tablet Landscape), 768px (Tablet), 480px (Mobile)
+   ========================================================================== */
+
+/* 1. Small Laptop / Tablet Landscape (< 1024px) */
 @media (max-width: 1024px) {
   .admin-console-sidebar {
     width: 98vw !important;
@@ -1947,11 +2027,16 @@ input:focus, textarea:focus, select:focus {
     padding: 1.25rem 0.75rem !important;
     height: auto !important;
   }
+
+  .contact-layout {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
 }
 
-/* Mobile Devices & Phones (< 768px) */
+/* 2. Tablets & Mobile Devices (< 768px) */
 @media (max-width: 768px) {
-  /* 1. Admin Console Sidebar Full Screen App Modal */
+  /* Admin Console Full Screen App Modal */
   .admin-console-sidebar {
     top: 0 !important;
     left: 0 !important;
@@ -1971,7 +2056,7 @@ input:focus, textarea:focus, select:focus {
     opacity: 1 !important;
   }
 
-  /* 2. App Header & Mobile Drawer */
+  /* Header Navbar & Hamburger Drawer */
   .app-header {
     padding: 0.75rem 1rem !important;
     flex-wrap: wrap;
@@ -2013,12 +2098,52 @@ input:focus, textarea:focus, select:focus {
     justify-content: center;
   }
 
-  /* 3. Universal Mobile Stacking for All Dashboard & Form Grids */
+  /* Timeline Steps Vertical Stacking */
+  .path-timeline {
+    margin-top: 2rem !important;
+  }
+
+  .path-timeline::before {
+    left: 28px !important;
+    transform: none !important;
+  }
+
+  .timeline-step {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    margin-bottom: 2.5rem !important;
+    position: relative !important;
+  }
+
+  .timeline-icon-box {
+    left: 0 !important;
+    transform: none !important;
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .timeline-content {
+    width: calc(100% - 64px) !important;
+    margin-left: 64px !important;
+    text-align: left !important;
+    align-items: flex-start !important;
+  }
+
+  .timeline-step:nth-child(odd) .timeline-content,
+  .timeline-step:nth-child(even) .timeline-content {
+    text-align: left !important;
+    align-items: flex-start !important;
+  }
+
+  /* Universal Form & Multi-Column Grids Stacking */
   .form-row-2,
   .form-row-3,
   .responsive-grid-2,
   .responsive-grid-3,
   .responsive-grid-4,
+  .contact-layout,
+  .pricing-grid,
+  .precision-grid,
   .dashboard-content [style*="grid-template-columns"],
   .dashboard-content [style*="gridTemplateColumns"],
   div[style*="gridTemplateColumns: \"1fr 1fr 1fr\""],
@@ -2030,14 +2155,14 @@ input:focus, textarea:focus, select:focus {
     gap: 0.85rem !important;
   }
 
-  /* Keep swatch & color preset grids intact on mobile */
+  /* Swatch and color presets stay intact */
   .color-picker-grid,
   div[style*="repeat(4, 1fr)"],
   div[style*="repeat(auto-fill, minmax(120px, 1fr))"] {
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
   }
 
-  /* Flex Header Bars inside Dashboard Tabs */
+  /* Dashboard Header Flex Items Wrap */
   .dashboard-content div[style*="display: flex"][style*="justify-content: space-between"],
   .dashboard-content div[style*="display:flex"][style*="justify-content:space-between"] {
     flex-direction: column !important;
@@ -2045,27 +2170,15 @@ input:focus, textarea:focus, select:focus {
     gap: 0.75rem !important;
   }
 
-  /* 4. Builder & Hero Section */
+  /* Cards & Cards Padding */
   .builder-view {
     width: 94% !important;
     margin: 1rem auto !important;
     gap: 1.5rem !important;
   }
 
-  .builder-card {
+  .builder-card, .contact-info-card, .contact-form-card {
     padding: 1.15rem !important;
-    border-radius: var(--radius-md) !important;
-  }
-
-  .hero-main-title {
-    font-size: 1.95rem !important;
-    padding: 0 0.25rem;
-  }
-
-  .hero-desc {
-    font-size: 0.9rem !important;
-    padding: 0 0.25rem;
-    margin-bottom: 1.25rem !important;
   }
 
   .prompt-pill-container {
@@ -2078,7 +2191,6 @@ input:focus, textarea:focus, select:focus {
 
   .prompt-pill-input {
     width: 100% !important;
-    font-size: 0.9rem !important;
   }
 
   .prompt-pill-actions {
@@ -2092,18 +2204,11 @@ input:focus, textarea:focus, select:focus {
     padding: 0.65rem 1rem !important;
   }
 
-  .suggested-grid,
-  .contact-layout,
-  .precision-grid {
+  .suggested-grid {
     grid-template-columns: 1fr !important;
-    gap: 1.25rem !important;
   }
 
-  .contact-info-card, .contact-form-card {
-    padding: 1.15rem !important;
-  }
-
-  /* 5. Storefront & Cart Drawer */
+  /* Customer Storefront & Cart Drawer */
   .full-page-storefront-container {
     margin-top: 0.75rem !important;
     margin-bottom: 1.5rem !important;
@@ -2133,7 +2238,7 @@ input:focus, textarea:focus, select:focus {
     border-left: none !important;
   }
 
-  /* 6. Modals & Printable Invoices */
+  /* Modals & Printable Invoices */
   .modal-content {
     padding: 1.25rem !important;
     max-height: 90vh !important;
@@ -2150,18 +2255,14 @@ input:focus, textarea:focus, select:focus {
   }
 }
 
-/* Extra Small Mobile Phones (< 480px) */
+/* 3. Mobile Phones (< 480px) */
 @media (max-width: 480px) {
   .logo-group {
-    font-size: 1.25rem !important;
-  }
-
-  .hero-main-title {
-    font-size: 1.65rem !important;
+    font-size: 1.2rem !important;
   }
 
   .stat-number {
-    font-size: 2rem !important;
+    font-size: 1.85rem !important;
   }
 
   .btn {
@@ -2170,7 +2271,21 @@ input:focus, textarea:focus, select:focus {
   }
 
   .dashboard-content {
-    padding: 0.85rem 0.5rem !important;
+    padding: 0.75rem 0.4rem !important;
+  }
+
+  .timeline-icon-box {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .timeline-content {
+    width: calc(100% - 52px) !important;
+    margin-left: 52px !important;
+  }
+
+  .path-timeline::before {
+    left: 20px !important;
   }
 }
 

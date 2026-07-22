@@ -1814,13 +1814,13 @@ export default function App() {
 
               {/* AI Onboarding Live Parse Preview */}
               {parsedPreview && (
-                <div style={{ marginTop: "1.5rem", maxWidth: "640px", width: "100%", backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderRadius: "16px", padding: "1.25rem", boxShadow: "var(--shadow-md)" }}>
+                <div className="parsed-preview-card">
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
                     <Sparkles size={15} style={{ color: "var(--color-accent-red)" }} />
                     <span style={{ fontWeight: 700, fontSize: "0.88rem" }}>AI Parsed Preview</span>
                     <span style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", marginLeft: "auto" }}>Auto-detected from your description</span>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem", fontSize: "0.83rem" }}>
+                  <div className="parsed-preview-grid">
                     {[
                       { label: "Store Name", value: parsedPreview.name },
                       { label: "Owner", value: parsedPreview.owner_name },
@@ -1847,7 +1847,7 @@ export default function App() {
             </div>
 
             {/* How it works */}
-            <div id="features" className="info-section" style={{ marginTop: "4rem" }}>
+            <div id="features" className="info-section">
               <h2 className="section-title">The Path to Creation</h2>
               <p className="section-subtitle">A seamless transition from voice description to a live retail business application.</p>
               
@@ -1882,14 +1882,14 @@ export default function App() {
             </div>
 
             {/* Pricing Section */}
-            <div id="pricing" className="info-section" style={{ marginTop: "4rem", backgroundColor: "var(--color-bg-base)", borderRadius: "24px", padding: "3rem 2rem" }}>
+            <div id="pricing" className="info-section pricing-section">
               <div style={{ textAlign: "center", maxWidth: "800px", margin: "0 auto 3rem" }}>
                 <h2 className="section-title">Simple, Transparent Pricing</h2>
                 <p className="section-subtitle">Choose the plan that fits your store. No hidden fees. Cancel anytime.</p>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem", maxWidth: "1000px", margin: "0 auto" }}>
+              <div className="pricing-grid">
                 {/* Free Plan */}
-                <div style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderRadius: "16px", padding: "2rem", display: "flex", flexDirection: "column" }}>
+                <div className="pricing-card">
                   <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
                     <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#2E7D32", backgroundColor: "#E8F5E9", display: "inline-block", padding: "0.25rem 0.75rem", borderRadius: "20px" }}>Free</div>
                     <h3 style={{ fontSize: "1.25rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.25rem" }}>Starter</h3>
@@ -1917,7 +1917,7 @@ export default function App() {
                 </div>
 
                 {/* Pro Plan */}
-                <div style={{ backgroundColor: "var(--color-bg-card)", border: "2px solid var(--color-accent-red)", borderRadius: "16px", padding: "2rem", display: "flex", flexDirection: "column", position: "relative" }}>
+                <div className="pricing-card-pro">
                   <div style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", backgroundColor: "var(--color-accent-red)", color: "white", fontSize: "0.65rem", fontWeight: 700, padding: "0.2rem 0.75rem", borderRadius: "20px" }}>MOST POPULAR</div>
                   <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
                     <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--color-accent-red)", backgroundColor: "#FDF6F0", display: "inline-block", padding: "0.25rem 0.75rem", borderRadius: "20px" }}>Pro</div>
@@ -1950,7 +1950,7 @@ export default function App() {
                 </div>
 
                 {/* Enterprise Plan */}
-                <div style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderRadius: "16px", padding: "2rem", display: "flex", flexDirection: "column" }}>
+                <div className="pricing-card">
                   <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
                     <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#6A1B9A", backgroundColor: "#F3E5F5", display: "inline-block", padding: "0.25rem 0.75rem", borderRadius: "20px" }}>Enterprise</div>
                     <h3 style={{ fontSize: "1.25rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.25rem" }}>Enterprise</h3>
