@@ -27,7 +27,9 @@ import {
   Heart,
   Lock,
   Menu,
-  X
+  X,
+  LayoutList,
+  Grid
 } from "lucide-react";
 
 // Types matching backend Pydantic models
@@ -55,11 +57,10 @@ interface Store {
   id: number;
   name: string;
   slug: string;
-  description?: string;
-  owner_name?: string;
-  address?: string;
-  phone?: string;
-  timings?: string;
+  owner_name: string;
+  address: string;
+  phone: string;
+  timings: string;
   theme_color: string;
   secondary_color: string;
   bg_color: string;
@@ -68,6 +69,10 @@ interface Store {
   whatsapp_enabled: boolean;
   stock_alerts_enabled: boolean;
   low_stock_threshold: number;
+  upi_id: string;
+  description: string;
+  created_at: string;
+  products?: Product[];
 }
 
 interface Supplier {
@@ -93,14 +98,14 @@ interface Customer {
   purchase_count: number;
   last_visit?: string;
 }
+
 interface Employee {
   id: number;
   store_id: number;
   name: string;
   role: string;
-  phone?: string;
+  phone: string;
   salary: number;
-  commission: number;
 }
 
 interface Attendance {
@@ -109,7 +114,14 @@ interface Attendance {
   employee_id: number;
   date: string;
   status: string;
-  check_in?: string;
+}
+
+interface Category {
+  id: number;
+  store_id: number;
+  name: string;
+  image_url: string;
+  subcategories: string;
 }
 
 const BACKEND_URL = (import.meta.env.VITE_API_URL as string) || (import.meta.env.DEV ? "http://localhost:8000" : "");
@@ -119,10 +131,10 @@ interface CustomDropdownProps {
   onChange: (val: any) => void;
   options: { value: string; label: string }[];
   icon?: React.ReactNode;
+  color?: string;
   style?: React.CSSProperties;
   selectStyle?: React.CSSProperties;
   dropdownStyle?: React.CSSProperties;
-  color?: string;
   className?: string;
 }
 
@@ -131,89 +143,94 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   onChange, 
   options, 
   icon, 
-  style, 
+  color = "var(--color-text-dark)", 
+  style,
   selectStyle,
   dropdownStyle,
-  color,
   className
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, []);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find(opt => opt.value === value) || options[0];
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
-    <div 
-      ref={containerRef} 
-      className={className || "pill-dropdown-container"} 
-      style={{ position: "relative", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "0.4rem", ...style }}
-      onClick={() => setIsOpen(!isOpen)}
-    >
-      {icon}
-      <span style={{ fontSize: "0.82rem", fontWeight: 600, color: color || "inherit", display: "inline-block", paddingRight: "1.2rem", position: "relative", ...selectStyle }}>
-        {selectedOption?.label}
-        <span style={{
-          position: "absolute",
-          right: 0,
-          top: "50%",
-          transform: `translateY(-50%) rotate(${isOpen ? "180deg" : "0deg"})`,
-          transition: "transform 0.2s ease",
-          fontSize: "0.55rem"
-        }}>▼</span>
-      </span>
-      {isOpen && (
-        <div style={{
-          position: "absolute",
-          top: "120%",
-          right: 0,
+    <div ref={dropdownRef} className={className} style={{ position: "relative", display: "inline-block", ...style }}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.4rem",
+          padding: "0.4rem 0.8rem",
           backgroundColor: "var(--color-bg-card)",
           border: "1px solid var(--color-border)",
-          borderRadius: "8px",
-          boxShadow: "var(--shadow-md)",
-          zIndex: 4000,
-          minWidth: "160px",
-          padding: "0.4rem 0",
-          maxHeight: "200px",
-          overflowY: "auto",
-          textAlign: "left",
-          ...dropdownStyle
-        }}>
-          {options.map(opt => (
-            <div
+          borderRadius: "20px",
+          fontSize: "0.85rem",
+          fontWeight: 600,
+          color: color,
+          cursor: "pointer",
+          transition: "var(--transition)",
+          ...selectStyle
+        }}
+      >
+        {icon}
+        <span>{selectedOption?.label}</span>
+        <span style={{ fontSize: "0.6rem", marginLeft: "0.2rem", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            top: "100%",
+            right: 0,
+            marginTop: "0.4rem",
+            backgroundColor: "var(--color-bg-card)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "12px",
+            boxShadow: "var(--shadow-md)",
+            zIndex: 1000,
+            minWidth: "140px",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            ...dropdownStyle
+          }}
+        >
+          {options.map((opt) => (
+            <button
               key={opt.value}
-              onClick={(e) => {
-                e.stopPropagation();
+              type="button"
+              onClick={() => {
                 onChange(opt.value);
                 setIsOpen(false);
               }}
               style={{
-                padding: "0.5rem 1rem",
-                fontSize: "0.82rem",
-                fontWeight: 600,
-                color: opt.value === value ? "var(--theme-color, var(--color-accent-red))" : "var(--color-text-dark)",
-                backgroundColor: opt.value === value ? "rgba(148, 63, 63, 0.05)" : "transparent",
-                transition: "background-color 0.2s ease",
-                cursor: "pointer"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "rgba(148, 63, 63, 0.08)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = opt.value === value ? "rgba(148, 63, 63, 0.05)" : "transparent";
+                padding: "0.6rem 1rem",
+                textAlign: "left",
+                backgroundColor: opt.value === value ? "rgba(0,0,0,0.05)" : "transparent",
+                border: "none",
+                fontSize: "0.85rem",
+                fontWeight: opt.value === value ? 700 : 500,
+                color: opt.value === value ? "var(--color-accent-red)" : "var(--color-text-dark)",
+                cursor: "pointer",
+                transition: "background 0.2s"
               }}
             >
               {opt.label}
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -257,50 +274,39 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     themePresets: "Theme Color Presets"
   },
   hi: {
-    ownerPanel: "à¤®à¤¾à¤²à¤¿à¤• à¤•à¤¾ à¤ªà¥ˆà¤¨à¤²",
-    adminConsole: "à¤®à¤¾à¤²à¤¿à¤• à¤¨à¤¿à¤¯à¤‚à¤¤à¥à¤°à¤£ à¤•à¤‚à¤¸à¥‹à¤²",
-    inventory: "à¤®à¤¾à¤² à¤¸à¥‚à¤šà¥€ à¤¸à¥à¤Ÿà¥‰à¤•",
-    billing: "à¤—à¥à¤°à¤¾à¤¹à¤• à¤¬à¤¿à¤²à¤¿à¤‚à¤—",
-    accounting: "à¤²à¥‡à¤–à¤¾à¤‚à¤•à¤¨ à¤²à¥‰à¤—",
-    editStore: "à¤¦à¥à¤•à¤¾à¤¨ à¤µà¤¿à¤µà¤°à¤£ à¤¬à¤¦à¤²à¥‡à¤‚",
-    design: "à¤¡à¤¿à¤œà¤¼à¤¾à¤‡à¤¨ à¤¸à¥à¤Ÿà¤¾à¤‡à¤²à¤¿à¤‚à¤—",
-    suppliers: "à¤†à¤ªà¥‚à¤°à¥à¤¤à¤¿à¤•à¤°à¥à¤¤à¤¾ (à¤¸à¤ªà¥à¤²à¤¾à¤¯à¤°)",
-    employees: "à¤•à¤°à¥à¤®à¤šà¤¾à¤°à¥€ / à¤‰à¤ªà¤¸à¥à¤¥à¤¿à¤¤à¤¿",
-    backupRestore: "à¤¡à¥‡à¤Ÿà¤¾à¤¬à¥‡à¤¸ à¤¸à¥‡à¤Ÿà¤¿à¤‚à¤—à¥à¤¸",
-    saveItem: "à¤†à¤‡à¤Ÿà¤® à¤¸à¤¹à¥‡à¤œà¥‡à¤‚",
-    cancel: "à¤°à¤¦à¥à¤¦ à¤•à¤°à¥‡à¤‚",
-    totalRevenue: "à¤•à¥à¤² à¤°à¤¾à¤œà¤¸à¥à¤µ",
-    invoicesIssued: "à¤œà¤¾à¤°à¥€ à¤•à¤¿à¤ à¤—à¤ à¤¬à¤¿à¤²",
-    walkInCustomer: "à¤¨à¤¿à¤¯à¤®à¤¿à¤¤ à¤—à¥à¤°à¤¾à¤¹à¤•",
-    addItems: "à¤¬à¤¿à¤² à¤®à¥‡à¤‚ à¤†à¤‡à¤Ÿà¤® à¤œà¥‹à¥œà¥‡à¤‚",
-    searchProducts: "à¤‰à¤¤à¥à¤ªà¤¾à¤¦à¥‹à¤‚ à¤•à¥€ à¤–à¥‹à¤œ...",
-    generateBill: "à¤¬à¤¿à¤² à¤¬à¤¨à¤¾à¤à¤‚ à¤”à¤° à¤¸à¤¹à¥‡à¤œà¥‡à¤‚",
-    role: "à¤­à¥‚à¤®à¤¿à¤•à¤¾",
-    attendance: "à¤‰à¤ªà¤¸à¥à¤¥à¤¿à¤¤à¤¿ à¤²à¥‰à¤—",
-    lowStockAlert: "à¤•à¤® à¤¸à¥à¤Ÿà¥‰à¤• à¤šà¥‡à¤¤à¤¾à¤µà¤¨à¥€!",
-    aiSuggest: "à¤à¤†à¤ˆ à¤¸à¥à¤à¤¾à¤µ",
-    suggestDescription: "à¤à¤†à¤ˆ à¤•à¥‡ à¤¸à¤¾à¤¥ à¤¬à¤¨à¤¾à¤à¤",
-    upiPay: "à¤¯à¥‚à¤ªà¥€à¤†à¤ˆ à¤•à¥à¤¯à¥‚à¤†à¤° à¤­à¥à¤—à¤¤à¤¾à¤¨",
-    cash: "à¤¨à¤•à¤¦",
-    card: "à¤•à¤¾à¤°à¥à¤¡",
-    upi: "à¤¯à¥‚à¤ªà¥€à¤†à¤ˆ",
-    split: "à¤µà¤¿à¤­à¤¾à¤œà¤¿à¤¤",
-    downloadCsv: "à¤¸à¥€à¤à¤¸à¤µà¥€ à¤°à¤¿à¤ªà¥‹à¤°à¥à¤Ÿ à¤¡à¤¾à¤‰à¤¨à¤²à¥‹à¤¡ à¤•à¤°à¥‡à¤‚",
-    chatHelper: "à¤à¤†à¤ˆ à¤¸à¥à¤®à¤¾à¤°à¥à¤Ÿ à¤¸à¤¹à¤¾à¤¯à¤•",
-    themePresets: "à¤°à¤‚à¤— à¤¥à¥€à¤® à¤ªà¥à¤°à¥€à¤¸à¥‡à¤Ÿà¥à¤¸"
+    ownerPanel: "मालिक का पैनल",
+    adminConsole: "मालिक नियंत्रण कंसोल",
+    inventory: "माल सूची स्टॉक",
+    billing: "ग्राहक बिलिंग",
+    accounting: "लेखांकन लॉग",
+    editStore: "दुकान विवरण बदलें",
+    design: "डिजाइन स्टाइलिंग",
+    suppliers: "आपूर्तिकर्ता (सप्लायर)",
+    employees: "कर्मचारी / उपस्थिति",
+    backupRestore: "डेटाबेस सेटिंग्स",
+    saveItem: "आइटम सहेजें",
+    cancel: "रद्द करें",
+    totalRevenue: "कुल राजस्व",
+    invoicesIssued: "जारी किए गए बिल",
+    walkInCustomer: "नियमित ग्राहक",
+    addItems: "बिल में आइटम जोड़ें",
+    searchProducts: "उत्पादों की खोज...",
+    generateBill: "बिल बनाएं और सहेजें",
+    role: "भूमिका",
+    attendance: "उपस्थिति लॉग",
+    lowStockAlert: "कम स्टॉक चेतावनी!",
+    aiSuggest: "एआई सुझाव",
+    suggestDescription: "एआई के साथ बनाएं",
+    upiPay: "यूपीआई क्यूआर भुगतान",
+    cash: "नकद",
+    card: "कार्ड",
+    upi: "यूपीआई",
+    split: "विभाजित",
+    downloadCsv: "सीएसवी रिपोर्ट डाउनलोड करें",
+    chatHelper: "एआई स्मार्ट सहायक",
+    themePresets: "रंग थीम प्रीसेट्स"
   },
   gu: {
-    ownerPanel: "àª®àª¾àª²àª¿àª• àªªà«‡àª¨àª²",
-    adminConsole: "àª®àª¾àª²àª¿àª• àª¨àª¿àª¯àª‚àª¤à«àª°àª£ àª•àª¨à«àª¸à«‹àª²",
-    inventory: "àª‡àª¨à«àªµà«‡àª¨à«àªŸàª°à«€ àª¸à«àªŸà«‹àª•",
-    billing: "àª—à«àª°àª¾àª¹àª• àª¬àª¿àª²àª¿àª‚àª—",
-    accounting: "àªàª•àª¾àª‰àª¨à«àªŸàª¿àª‚àª— àª²à«‹àª—",
-    editStore: "àª¦à«àª•àª¾àª¨ àªµàª¿àª—àª¤à«‹ àª¸àª‚àªªàª¾àª¦àª¿àª¤ àª•àª°à«‹",
-    design: "àª¡àª¿àªàª¾àª‡àª¨ àª¸à«àªŸàª¾àª‡àª²à«€àª‚àª—",
-    suppliers: "àª¸àªªà«àª²àª¾àª¯àª°à«àª¸",
-    employees: "àª•àª°à«àª®àªšàª¾àª°à«€àª“ / àª¹àª¾àªœàª°à«€",
-    backupRestore: "àª¡à«‡àªŸàª¾àª¬à«‡àª àª¸à«‡àªŸàª¿àª‚àª—à«àª¸",
-    saveItem: "àª†àª‡àªŸàª® àª¸àª¾àªšàªµà«‹",
     cancel: "àª°àª¦ àª•àª°à«‹",
     totalRevenue: "àª•à«àª² àª†àªµàª•",
     invoicesIssued: "àª‡àª¨à«àªµà«‰àª‡àª¸à«‡àª¸ àªœàª¾àª°à«€ àª•àª°à«àª¯àª¾",
@@ -380,7 +386,7 @@ export default function App() {
   // Active Store State
   const [store, setStore] = useState<any | null>(null);
   const [products, setProducts] = useState<any[]>([]);
-  const [categoriesList, setCategoriesList] = useState<any[]>([]);
+  const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const [ordersList, setOrdersList] = useState<any[]>([]);
   const [warehousesList, setWarehousesList] = useState<any[]>([{ id: 1, name: "Main Warehouse", location: "Store Backroom" }]);
   useEffect(() => {
@@ -410,7 +416,7 @@ export default function App() {
   const [customerWishlist, setCustomerWishlist] = useState<number[]>([]);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [categoryForm, setCategoryForm] = useState({ name: "", image_url: "", subcategories: "[]" });
-  const [customerActiveTab] = useState<"shop" | "orders" | "wishlist">("shop");
+  const [customerActiveTab, setCustomerActiveTab] = useState<"shop" | "orders" | "wishlist">("shop");
   const [isCustomerCartOpen, setIsCustomerCartOpen] = useState(false);
 
 
@@ -2092,14 +2098,14 @@ export default function App() {
                           <div style={{ display: "flex", border: "1px solid var(--color-border)", borderRadius: "8px", overflow: "hidden" }}>
                             <button
                               onClick={() => setInventoryView("table")}
-                              style={{ padding: "0.4rem 0.7rem", fontSize: "0.8rem", border: "none", cursor: "pointer", backgroundColor: inventoryView === "table" ? "var(--color-accent-red)" : "transparent", color: inventoryView === "table" ? "#fff" : "var(--color-text-muted)", fontWeight: 600 }}
+                              style={{ padding: "0.4rem 0.7rem", fontSize: "0.8rem", border: "none", cursor: "pointer", backgroundColor: inventoryView === "table" ? "var(--color-accent-red)" : "transparent", color: inventoryView === "table" ? "#fff" : "var(--color-text-muted)", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.3rem" }}
                               title="Table View"
-                            >☰ Table</button>
+                            ><LayoutList size={14} /> Table</button>
                             <button
                               onClick={() => setInventoryView("grid")}
-                              style={{ padding: "0.4rem 0.7rem", fontSize: "0.8rem", border: "none", cursor: "pointer", backgroundColor: inventoryView === "grid" ? "var(--color-accent-red)" : "transparent", color: inventoryView === "grid" ? "#fff" : "var(--color-text-muted)", fontWeight: 600 }}
+                              style={{ padding: "0.4rem 0.7rem", fontSize: "0.8rem", border: "none", cursor: "pointer", backgroundColor: inventoryView === "grid" ? "var(--color-accent-red)" : "transparent", color: inventoryView === "grid" ? "#fff" : "var(--color-text-muted)", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.3rem" }}
                               title="Grid View"
-                            >⊞ Grid</button>
+                            ><Grid size={14} /> Grid</button>
                           </div>
                           <button onClick={() => { setShowAddProduct(!showAddProduct); setEditingProduct(null); setShowAddCategory(false); }} className="btn btn-primary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
                             <Plus size={14} /> Add Product
@@ -2551,8 +2557,8 @@ export default function App() {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <h3 style={{ fontWeight: 700 }}>{t("billing")}</h3>
                         <div style={{ display: "flex", border: "1px solid var(--color-border)", borderRadius: "8px", overflow: "hidden" }}>
-                          <button onClick={() => setBillingGridView(false)} style={{ padding: "0.3rem 0.6rem", fontSize: "0.8rem", border: "none", cursor: "pointer", backgroundColor: !billingGridView ? "var(--color-accent-red)" : "transparent", color: !billingGridView ? "#fff" : "var(--color-text-muted)", fontWeight: 600 }}>☰ List</button>
-                          <button onClick={() => setBillingGridView(true)} style={{ padding: "0.3rem 0.6rem", fontSize: "0.8rem", border: "none", cursor: "pointer", backgroundColor: billingGridView ? "var(--color-accent-red)" : "transparent", color: billingGridView ? "#fff" : "var(--color-text-muted)", fontWeight: 600 }}>⊞ Grid</button>
+                          <button onClick={() => setBillingGridView(false)} style={{ padding: "0.3rem 0.6rem", fontSize: "0.8rem", border: "none", cursor: "pointer", backgroundColor: !billingGridView ? "var(--color-accent-red)" : "transparent", color: !billingGridView ? "#fff" : "var(--color-text-muted)", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.3rem" }}><LayoutList size={14} /> List</button>
+                          <button onClick={() => setBillingGridView(true)} style={{ padding: "0.3rem 0.6rem", fontSize: "0.8rem", border: "none", cursor: "pointer", backgroundColor: billingGridView ? "var(--color-accent-red)" : "transparent", color: billingGridView ? "#fff" : "var(--color-text-muted)", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.3rem" }}><Grid size={14} /> Grid</button>
                         </div>
                       </div>
                       
@@ -3990,42 +3996,82 @@ export default function App() {
           }}>
             <div className="full-page-storefront-container">
               {/* Store Header */}
-              <div className="full-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.25rem 2.5rem", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
-                <div>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: store.theme_color }}>{store.name}</div>
-                  <div style={{ display: "flex", gap: "1.5rem", fontSize: "0.9rem", color: "var(--color-text-muted)" }}>
-                    <span>{store.timings || "Open All Days"}</span>
+              <div className="full-page-header">
+                <div className="storefront-header-brand">
+                  <div className="storefront-title" style={{ fontSize: "1.4rem", fontWeight: 800, color: store.theme_color }}>{store.name}</div>
+                  <div className="storefront-subtitle" style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
+                    {store.timings || "Open All Days"}
                   </div>
                 </div>
 
-                {/* Customer Storefront Actions toolbar */}
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }} className="no-print">
-                  <button 
-                    onClick={() => setIsCustomerCartOpen(true)} 
-                    style={{ 
-                      background: products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "rgba(211, 47, 47, 0.1)" : "rgba(0,0,0,0.05)", 
-                      color: products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "#D32F2F" : "var(--color-text-muted)", 
-                      border: "none", 
-                      padding: "0.4rem 0.8rem", 
-                      borderRadius: "20px", 
-                      fontWeight: 700, 
-                      cursor: "pointer", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      gap: "0.3rem", 
-                      fontSize: "0.85rem" 
-                    }}
-                  >
-                    <AlertTriangle size={15} /> Low Stock <span style={{ fontSize: "0.75rem", backgroundColor: products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "#D32F2F" : "var(--color-text-muted)", color: "#FFFFFF", padding: "0.1rem 0.35rem", borderRadius: "10px" }}>{products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length}</span>
-                  </button>
+                {/* Customer Storefront Actions & Nav Toolbar */}
+                <div className="storefront-actions-toolbar no-print">
+                  <div className="storefront-nav-tabs">
+                    <button 
+                      onClick={() => setCustomerActiveTab("shop")}
+                      className={`btn ${customerActiveTab === "shop" ? "btn-primary" : "btn-secondary"}`}
+                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.82rem", borderRadius: "20px", backgroundColor: customerActiveTab === "shop" ? store.theme_color : "transparent", borderColor: store.theme_color, color: customerActiveTab === "shop" ? "#FFF" : store.theme_color }}
+                    >
+                      <Package size={15} /> Shop
+                    </button>
+                    <button 
+                      onClick={() => setCustomerActiveTab("orders")}
+                      className={`btn ${customerActiveTab === "orders" ? "btn-primary" : "btn-secondary"}`}
+                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.82rem", borderRadius: "20px", backgroundColor: customerActiveTab === "orders" ? store.theme_color : "transparent", borderColor: store.theme_color, color: customerActiveTab === "orders" ? "#FFF" : store.theme_color }}
+                    >
+                      <Send size={15} /> Orders ({ordersList.length})
+                    </button>
+                    <button 
+                      onClick={() => setCustomerActiveTab("wishlist")}
+                      className={`btn ${customerActiveTab === "wishlist" ? "btn-primary" : "btn-secondary"}`}
+                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.82rem", borderRadius: "20px", backgroundColor: customerActiveTab === "wishlist" ? store.theme_color : "transparent", borderColor: store.theme_color, color: customerActiveTab === "wishlist" ? "#FFF" : store.theme_color }}
+                    >
+                      <Heart size={15} /> Wishlist ({customerWishlist.length})
+                    </button>
+                  </div>
 
-                  {currentUser && (
-                    <div style={{ display: "flex", flexDirection: "column", fontSize: "0.75rem", borderLeft: "1px solid var(--color-border)", paddingLeft: "0.75rem", lineHeight: 1.3 }}>
-                      <span style={{ fontWeight: 700 }}>{currentUser.name}</span>
-                      <span style={{ color: "green" }}>Wallet: ₹{customerWallet}</span>
-                      <span style={{ color: "#E65100" }}>Loyalty Pts: {customerPoints}</span>
-                    </div>
-                  )}
+                  <div className="storefront-right-controls">
+                    <button 
+                      onClick={() => setIsCustomerCartOpen(true)} 
+                      style={{ 
+                        background: products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "rgba(211, 47, 47, 0.1)" : "rgba(0,0,0,0.05)", 
+                        color: products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "#D32F2F" : "var(--color-text-muted)", 
+                        border: "none", 
+                        padding: "0.4rem 0.8rem", 
+                        borderRadius: "20px", 
+                        fontWeight: 700, 
+                        cursor: "pointer", 
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: "0.3rem", 
+                        fontSize: "0.85rem" 
+                      }}
+                    >
+                      <AlertTriangle size={15} /> Low Stock <span style={{ fontSize: "0.75rem", backgroundColor: products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "#D32F2F" : "var(--color-text-muted)", color: "#FFFFFF", padding: "0.1rem 0.35rem", borderRadius: "10px" }}>{products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length}</span>
+                    </button>
+
+                    {currentUser && (
+                      <div className="storefront-user-badge" style={{ display: "flex", flexDirection: "column", fontSize: "0.75rem", borderLeft: "1px solid var(--color-border)", paddingLeft: "0.75rem", lineHeight: 1.3 }}>
+                        <span style={{ fontWeight: 700 }}>{currentUser.name}</span>
+                        <span style={{ color: "green" }}>Wallet: ₹{customerWallet}</span>
+                      </div>
+                    )}
+
+                    <button 
+                      onClick={() => {
+                        if (isOwnerVerified) {
+                          setView("dashboard");
+                          setIsConsoleOpen(true);
+                        } else {
+                          setShowPasswordPrompt(true);
+                        }
+                      }}
+                      className="btn btn-secondary"
+                      style={{ padding: "0.4rem 0.85rem", fontSize: "0.82rem", borderRadius: "20px" }}
+                    >
+                      <Edit3 size={15} /> {t("ownerPanel")}
+                    </button>
+                  </div>
                 </div>
               </div>
 

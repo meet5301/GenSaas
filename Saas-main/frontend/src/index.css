@@ -2253,10 +2253,28 @@ button, input, select, textarea, .btn, .tab-btn {
     align-items: stretch !important;
   }
 
-  .full-page-header > div:last-child {
-    flex-wrap: wrap !important;
-    justify-content: space-between !important;
+  .storefront-actions-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
     width: 100% !important;
+  }
+
+  .storefront-nav-tabs {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding-bottom: 0.25rem !important;
+  }
+
+  .storefront-right-controls {
+    width: 100% !important;
+    justify-content: space-between !important;
+    gap: 0.5rem !important;
+  }
+
+  .storefront-right-controls .btn {
+    flex: 1;
+    justify-content: center;
   }
 
   .full-page-desc-banner {
