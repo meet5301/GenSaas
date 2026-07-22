@@ -110,7 +110,7 @@ interface Attendance {
   check_in?: string;
 }
 
-const BACKEND_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:8000";
+const BACKEND_URL = (import.meta.env.VITE_API_URL as string) || (import.meta.env.DEV ? "http://localhost:8000" : "");
 
 interface CustomDropdownProps {
   value: string;
