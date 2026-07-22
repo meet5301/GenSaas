@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Rounded Background Circle -->
+  <rect width="100" height="100" rx="24" fill="#E85A4F" />
+  
+  <!-- Store Front Icon -->
+  <path d="M25 40 L75 40 L80 50 L20 50 Z" fill="#FFFFFF" />
+  <rect x="28" y="50" width="44" height="25" rx="2" fill="#FFFFFF" opacity="0.9" />
+  
+  <!-- Door -->
+  <rect x="42" y="58" width="16" height="17" rx="1" fill="#E85A4F" />
+  
+  <!-- Roof stripes/awning -->
+  <path d="M20 50 L25 40 L35 40 L30 50 Z" fill="#E98074" />
+  <path d="M40 50 L45 40 L55 40 L50 50 Z" fill="#E98074" />
+  <path d="M60 50 L65 40 L75 40 L70 50 Z" fill="#E98074" />
+
+  <!-- A small sparkle of AI -->
+  <path d="M70 20 L72 25 L77 27 L72 29 L70 34 L68 29 L63 27 L68 25 Z" fill="#FFFFFF" />
+</svg>
