@@ -182,7 +182,7 @@ def generate_store_from_prompt(prompt: str, store_name_override: Optional[str] =
     cleaned_prompt = prompt.strip()
     
     # 1. Parse Store Name
-    store_name = "Apna Kirana Store"
+    store_name = "Apna GenSaas Store"
     
     if store_name_override and store_name_override.strip():
         store_name = store_name_override.strip()
@@ -218,16 +218,14 @@ def generate_store_from_prompt(prompt: str, store_name_override: Optional[str] =
                 break
                 
     # If name is still generic but we find capitalized words in prompt
-    if store_name == "Apna Kirana Store":
+    if store_name == "Apna GenSaas Store":
         capitalized = re.findall(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b", cleaned_prompt)
         if capitalized:
             longest = max(capitalized, key=len)
             if len(longest) > 3 and longest.lower() not in ["india", "indian", "gujarat", "delhi", "mumbai", "ahmedabad", "pune", "bangalore"]:
-                suffix = " Kirana Store"
+                suffix = " Store"
                 if "store" in prompt.lower():
                     suffix = " Store"
-                elif "kirana" in prompt.lower():
-                    suffix = " Kirana"
                 elif "dukaan" in prompt.lower():
                     suffix = " Dukaan"
                 store_name = longest + suffix
@@ -235,14 +233,14 @@ def generate_store_from_prompt(prompt: str, store_name_override: Optional[str] =
     # Create slug
     slug = re.sub(r'[^a-z0-9]+', '-', store_name.lower()).strip('-')
     if not slug:
-        slug = "my-kirana-store"
+        slug = "my-gensaas-store"
 
     # 2. Parse Description
-    description = f"Welcome to {store_name}! We provide fresh groceries, dairy products, grains, spices, snacks, and daily household needs directly to your doorstep."
+    description = f"Welcome to {store_name}! We provide fresh quality items, daily essential goods, and SaaS services directly to you."
     sells_match = re.search(r"(?:sell|selling|bechna|available|availables|specialist in)\s+([A-Za-z0-9\s,&\text]+)", cleaned_prompt, re.IGNORECASE)
     if sells_match:
         items_sold = sells_match.group(1).strip().strip('.')
-        description = f"Your trusted local kirana. We specialize in {items_sold}. Quality goods at honest prices."
+        description = f"Your trusted store. We specialize in {items_sold}. Quality products and services at honest prices."
 
     # 3. Parse Location/Address
     address = "Main Market Road, India"
@@ -257,7 +255,7 @@ def generate_store_from_prompt(prompt: str, store_name_override: Optional[str] =
         loc = loc_match.group(1).strip()
         if len(loc) > 3 and loc.lower() not in ["july", "june", "monday", "tuesday", "morning", "evening"]:
             loc = loc.split(" sell")[0].split(" we")[0].split(" open")[0].split(" have")[0]
-            address = f"Near Temple, {loc.strip()}"
+            address = f"Near City Center, {loc.strip()}"
 
     # 4. Parse Phone / Contact Number
     phone = "9876543210"
@@ -270,7 +268,7 @@ def generate_store_from_prompt(prompt: str, store_name_override: Optional[str] =
             phone = phone_match_alt.group(1).replace(" ", "").replace("-", "")
 
     # 5. Parse Owner Name
-    owner_name = "Kirana Merchant"
+    owner_name = "Store Manager"
     owner_patterns = [
         r"(?:owner|malik|maalik|owned by|run by|chalata hai|chalate hain)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)",
         r"(?:my name is|mera naam|naam hai)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)",

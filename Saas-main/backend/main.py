@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi.errors import RateLimitExceeded
@@ -22,7 +22,7 @@ from middleware import limiter, security_headers_middleware
 # Create DB tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="KiranaBuilder API", description="AI voice-to-website generator for Indian general stores")
+app = FastAPI(title="GenSaas API", description="AI voice-to-website generator for Modern Businesses & E-Commerce")
 
 # Rate limiter
 app.state.limiter = limiter
@@ -31,13 +31,19 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Security headers
 app.add_middleware(BaseHTTPMiddleware, dispatch=security_headers_middleware)
 
+import os
+
+cors_origins = os.getenv("ALLOWED_ORIGINS")
+origins = [o.strip() for o in cors_origins.split(",")] if cors_origins else [
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "*"
+]
+
 # Enable CORS for React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5173",
-        "http://localhost:5173",
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,7 +51,7 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to KiranaBuilder Backend API", "status": "running"}
+    return {"message": "Welcome to GenSaas Backend API", "status": "running"}
 
 
 # --- Auth Routes ---

@@ -110,7 +110,7 @@ interface Attendance {
   check_in?: string;
 }
 
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:8000";
 
 interface CustomDropdownProps {
   value: string;
@@ -630,7 +630,7 @@ export default function App() {
       /(?:name is|naam hai|named|called|call it)\s+['"]?([A-Za-z0-9\s&]+)['"]?/i,
       /([A-Za-z0-9\s&]+)(?:general store|store|kirana|bazaar|mart|dukaan|supermarket|grocery|provision)/i
     ];
-    let parsedName = "Apna Kirana Store";
+    let parsedName = "Apna GenSaas Store";
     for (const pattern of namePatterns) {
       const match = finalPrompt.match(pattern);
       if (match && match[1]) {
@@ -641,7 +641,7 @@ export default function App() {
     // Clean trailing/leading connection words
     parsedName = parsedName.replace(/^(my store|apna|mera|our store)\s+/i, "");
     parsedName = parsedName.replace(/\s+(and|item|items|will|is|are|we|sell|sells|selling|avail|available|location|in|at)\b.*$/i, "");
-    if (!parsedName.toLowerCase().includes("store") && !parsedName.toLowerCase().includes("kirana") && !parsedName.toLowerCase().includes("mart")) {
+    if (!parsedName.toLowerCase().includes("store") && !parsedName.toLowerCase().includes("saas") && !parsedName.toLowerCase().includes("mart")) {
       parsedName = parsedName + " Store";
     }
 
@@ -1114,7 +1114,7 @@ export default function App() {
         const presentCount = attendance.filter(a => a.date === new Date().toISOString().split("T")[0] && a.status === "Present").length;
         reply = `You have ${count} staff profiles. Today's attendance sheet logs ${presentCount} employees checked in as Present.`;
       } else if (q.includes("hello") || q.includes("hi")) {
-        reply = "Hello! I am your Kirana Store AI. How can I assist you with inventory, billing, or reports today?";
+        reply = "Hello! I am your GenSaas AI Assistant. How can I assist you with inventory, billing, or reports today?";
       }
 
       setChatHistory(prev => [...prev, { sender: "ai", text: reply }]);
@@ -1512,13 +1512,13 @@ export default function App() {
       <header className="app-header" style={{ borderBottom: "1px solid var(--color-border)" }}>
         <div className="logo-group" style={{ cursor: "pointer" }} onClick={() => setView("builder")}>
           {view === "builder" ? (
-            <span style={{ fontFamily: "var(--font-serif)", fontSize: "1.8rem", fontWeight: 600, color: "var(--color-accent-red)" }}>GenScale</span>
+            <span style={{ fontFamily: "var(--font-serif)", fontSize: "1.8rem", fontWeight: 600, color: "var(--color-accent-red)" }}>GenSaas</span>
           ) : (
             <>
               <div className="logo-icon">
                 <StoreIcon size={24} />
               </div>
-              <span>{store?.name || "GenScale"}</span>
+              <span>{store?.name || "GenSaas"}</span>
             </>
           )}
         </div>
@@ -1638,7 +1638,7 @@ export default function App() {
           <div style={{ minHeight: "calc(100vh - 75px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem", backgroundColor: "var(--color-bg-base)" }}>
             <div style={{ backgroundColor: "var(--color-bg-card)", borderRadius: "16px", maxWidth: "420px", width: "100%", padding: "2.5rem", boxShadow: "var(--shadow-md)", border: "1px solid var(--color-border)" }}>
               <h3 style={{ textAlign: "center", fontWeight: 800, fontSize: "1.5rem", marginBottom: "1.5rem" }}>
-                {authMode === "login" ? "Login to GenScale" : "Create Store Owner Account"}
+                {authMode === "login" ? "Login to GenSaas" : "Create Store Owner Account"}
               </h3>
               
               <form onSubmit={handleAuthSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -1671,7 +1671,7 @@ export default function App() {
                 
                 <div className="form-group">
                   <label>Email Address</label>
-                  <input type="email" required placeholder="e.g. name@kirana.com" value={authForm.email} onChange={e => setAuthForm({ ...authForm, email: e.target.value })} style={{ padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
+                  <input type="email" required placeholder="e.g. name@gensaas.com" value={authForm.email} onChange={e => setAuthForm({ ...authForm, email: e.target.value })} style={{ padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
                 </div>
                 
                 <div className="form-group">
@@ -1725,7 +1725,7 @@ export default function App() {
                   type="text"
                   value={prompt}
                   onChange={(e) => { setPrompt(e.target.value); triggerParsePreview(e.target.value); }}
-                  placeholder="Describe your Kirana shop (e.g. Radhe Krishna General Store owned by Suresh in Rajkot, selling ghee, atta, milk)..."
+                  placeholder="Describe your business or store (e.g. Apex Tech Solutions owned by Suresh in Mumbai, selling SaaS tools, web design, electronics)..."
                   className="prompt-pill-input"
                   disabled={loading}
                   onKeyDown={(e) => {
@@ -1783,7 +1783,7 @@ export default function App() {
                     handleGenerate(text);
                   }}
                 >
-                  "Radhe Krishna Kirana in Rajkot"
+                  "Apex Tech Solutions in Mumbai"
                 </span>
                 <span style={{ margin: "0 0.5rem", color: "var(--color-text-muted)" }}>|</span>
                 <span 
@@ -1852,7 +1852,7 @@ export default function App() {
                   <div className="timeline-content">
                     <div className="timeline-step-tag">02 / GENERATION</div>
                     <h3>AI Creation</h3>
-                    <p>GenScale's catalog matching engines design standard price listings, product images, and populate initial stock configurations.</p>
+                    <p>GenSaas's catalog matching engines design standard price listings, product images, and populate initial stock configurations.</p>
                   </div>
                   <div className="timeline-icon-box"><Sparkles size={20} /></div>
                 </div>
@@ -3959,7 +3959,7 @@ export default function App() {
                     </div>
                   )}
                   <div style={{ fontSize: "0.75rem", opacity: 0.6, marginTop: "0.5rem" }}>
-                    Powered by GenScale Website Maker
+                    Powered by GenSaas Website Maker
                   </div>
                 </div>
               </div>
@@ -4341,7 +4341,7 @@ export default function App() {
                   </div>
                 )}
                 <div style={{ fontSize: "0.75rem", opacity: 0.6, marginTop: "0.5rem" }}>
-                  Powered by GenScale Website Maker
+                  Powered by GenSaas Website Maker
                 </div>
               </div>
             </div>
@@ -4611,7 +4611,7 @@ export default function App() {
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div style={{ backgroundColor: "#FFFFFF", borderRadius: "16px", maxWidth: "400px", width: "100%", padding: "2rem", boxShadow: "var(--shadow-lg)" }}>
             <h3 style={{ textAlign: "center", fontWeight: 800, fontSize: "1.5rem", marginBottom: "1.5rem" }}>
-              {authMode === "login" ? "Login to GenScale" : "Create Store Owner Account"}
+              {authMode === "login" ? "Login to GenSaas" : "Create Store Owner Account"}
             </h3>
             
             <form onSubmit={handleAuthSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -4644,7 +4644,7 @@ export default function App() {
               
               <div className="form-group">
                 <label>Email Address</label>
-                <input type="email" required placeholder="e.g. name@kirana.com" value={authForm.email} onChange={e => setAuthForm({ ...authForm, email: e.target.value })} style={{ padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
+                <input type="email" required placeholder="e.g. name@gensaas.com" value={authForm.email} onChange={e => setAuthForm({ ...authForm, email: e.target.value })} style={{ padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
               </div>
               
               <div className="form-group">
