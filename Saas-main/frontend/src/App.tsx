@@ -2028,52 +2028,86 @@ export default function App() {
             <div className={`sidebar-overlay ${isConsoleOpen ? "open" : ""}`} onClick={() => setIsConsoleOpen(false)} />
             
             <div className={`admin-console-sidebar ${isConsoleOpen ? "open" : ""}`}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--color-border)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <div className="admin-console-header">
+                <div className="admin-console-title">
                   <StoreIcon size={20} style={{ color: "var(--color-accent-red)" }} />
-                  <span style={{ fontWeight: 800, fontSize: "1.1rem" }}>{t("adminConsole")}</span>
+                  <span>{t("adminConsole")}</span>
                 </div>
-                <button onClick={() => setIsConsoleOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
-                  <Plus size={20} style={{ transform: "rotate(45deg)" }} />
+                <button 
+                  onClick={() => setIsConsoleOpen(false)} 
+                  className="admin-console-close-btn"
+                  aria-label="Close Admin Console"
+                >
+                  <X size={20} />
                 </button>
               </div>
 
               <div className="dashboard-panel-container">
                 <div className="dashboard-tabs">
-                  <button onClick={() => setActiveTab("stock")} className={`tab-btn ${activeTab === "stock" ? "active" : ""}`}>
+                  <button 
+                    onClick={() => { setActiveTab("stock"); document.querySelector(".dashboard-content")?.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className={`tab-btn ${activeTab === "stock" ? "active" : ""}`}
+                  >
                     <Package size={16} /> {t("inventory")}
                   </button>
-                  <button onClick={() => { setActiveTab("billing"); setInvoiceItems([]); }} className={`tab-btn ${activeTab === "billing" ? "active" : ""}`}>
+                  <button 
+                    onClick={() => { setActiveTab("billing"); setInvoiceItems([]); document.querySelector(".dashboard-content")?.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className={`tab-btn ${activeTab === "billing" ? "active" : ""}`}
+                  >
                     <Plus size={16} /> {t("billing")}
                   </button>
                   
                   {userRole !== "Cashier" && (
                     <>
-                      <button onClick={() => { setActiveTab("accounting"); fetchSales(store.id); }} className={`tab-btn ${activeTab === "accounting" ? "active" : ""}`}>
+                      <button 
+                        onClick={() => { setActiveTab("accounting"); fetchSales(store.id); document.querySelector(".dashboard-content")?.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                        className={`tab-btn ${activeTab === "accounting" ? "active" : ""}`}
+                      >
                         <DollarSign size={16} /> {t("accounting")}
                       </button>
-                      <button onClick={() => { setActiveTab("suppliers"); fetchSuppliers(store.id); }} className={`tab-btn ${activeTab === "suppliers" ? "active" : ""}`}>
+                      <button 
+                        onClick={() => { setActiveTab("suppliers"); fetchSuppliers(store.id); document.querySelector(".dashboard-content")?.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                        className={`tab-btn ${activeTab === "suppliers" ? "active" : ""}`}
+                      >
                         <Briefcase size={16} /> {t("suppliers")}
                       </button>
-                      <button onClick={() => { setActiveTab("customers"); fetchCustomers(store.id); }} className={`tab-btn ${activeTab === "customers" ? "active" : ""}`}>
+                      <button 
+                        onClick={() => { setActiveTab("customers"); fetchCustomers(store.id); document.querySelector(".dashboard-content")?.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                        className={`tab-btn ${activeTab === "customers" ? "active" : ""}`}
+                      >
                         <User size={16} /> Customers CRM
                       </button>
-                      <button onClick={() => { setActiveTab("employees"); fetchEmployees(store.id); fetchAttendance(store.id); }} className={`tab-btn ${activeTab === "employees" ? "active" : ""}`}>
+                      <button 
+                        onClick={() => { setActiveTab("employees"); fetchEmployees(store.id); fetchAttendance(store.id); document.querySelector(".dashboard-content")?.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                        className={`tab-btn ${activeTab === "employees" ? "active" : ""}`}
+                      >
                         <Users size={16} /> {t("employees")}
                       </button>
                     </>
                   )}
                   
-                  <button onClick={() => setActiveTab("store-settings")} className={`tab-btn ${activeTab === "store-settings" ? "active" : ""}`}>
+                  <button 
+                    onClick={() => { setActiveTab("store-settings"); document.querySelector(".dashboard-content")?.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className={`tab-btn ${activeTab === "store-settings" ? "active" : ""}`}
+                  >
                     <Settings size={16} /> Store Settings
                   </button>
-                  <button onClick={() => { setActiveTab("analytics"); fetchSales(store.id); }} className={`tab-btn ${activeTab === "analytics" ? "active" : ""}`}>
+                  <button 
+                    onClick={() => { setActiveTab("analytics"); fetchSales(store.id); document.querySelector(".dashboard-content")?.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className={`tab-btn ${activeTab === "analytics" ? "active" : ""}`}
+                  >
                     <BarChart2 size={16} /> Analytics
                   </button>
-                  <button onClick={() => { setActiveTab("orders"); fetchOrders(store.id); }} className={`tab-btn ${activeTab === "orders" ? "active" : ""}`}>
+                  <button 
+                    onClick={() => { setActiveTab("orders"); fetchOrders(store.id); document.querySelector(".dashboard-content")?.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className={`tab-btn ${activeTab === "orders" ? "active" : ""}`}
+                  >
                     <Send size={16} /> Orders
                   </button>
-                  <button onClick={() => { setActiveTab("ai-insights"); fetchAIInsights(store.id); }} className={`tab-btn ${activeTab === "ai-insights" ? "active" : ""}`}>
+                  <button 
+                    onClick={() => { setActiveTab("ai-insights"); fetchAIInsights(store.id); document.querySelector(".dashboard-content")?.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className={`tab-btn ${activeTab === "ai-insights" ? "active" : ""}`}
+                  >
                     <Sparkles size={16} /> AI Insights
                   </button>
                   {userRole === "Store Owner" || userRole === "Super Admin" ? (

@@ -1656,6 +1656,46 @@ input:focus, textarea:focus, select:focus {
   pointer-events: auto;
 }
 
+.admin-console-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.15rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background: #ffffff;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.admin-console-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--color-text-dark);
+}
+
+.admin-console-close-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px !important;
+  border-radius: 50%;
+  color: var(--color-text-dark);
+  transition: background 0.2s, color 0.2s;
+}
+
+.admin-console-close-btn:hover {
+  background: rgba(211, 47, 47, 0.1);
+  color: var(--color-accent-red);
+}
+
 .dashboard-panel-container {
   display: flex;
   flex: 1;
@@ -2042,8 +2082,9 @@ button, input, select, textarea, .btn, .tab-btn {
 
 /* 2. Tablets & Mobile Devices (< 768px) */
 @media (max-width: 768px) {
-  /* Admin Console Full Screen App Modal */
+  /* Admin Console Full Screen App Modal & Touch Tab Bar */
   .admin-console-sidebar {
+    position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     width: 100vw !important;
@@ -2055,11 +2096,73 @@ button, input, select, textarea, .btn, .tab-btn {
     border: none !important;
     box-shadow: none !important;
     z-index: 9999 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
   }
 
   .admin-console-sidebar.open {
     transform: none !important;
     opacity: 1 !important;
+  }
+
+  .admin-console-header {
+    padding: 0.75rem 1rem !important;
+    min-height: 52px !important;
+    flex-shrink: 0 !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03) !important;
+  }
+
+  .dashboard-panel-container {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    height: calc(100vh - 52px) !important;
+    overflow: hidden !important;
+  }
+
+  .dashboard-tabs {
+    width: 100% !important;
+    min-width: 100% !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    padding: 0.5rem 0.75rem !important;
+    gap: 0.5rem !important;
+    background: #FAF8F5 !important;
+    flex-shrink: 0 !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+
+  .dashboard-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .dashboard-tabs .tab-btn {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    padding: 0.5rem 0.85rem !important;
+    font-size: 0.82rem !important;
+    min-height: 40px !important;
+    border-radius: 20px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+    white-space: nowrap !important;
+  }
+
+  .dashboard-content {
+    flex: 1 !important;
+    padding: 1rem 0.85rem !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
   }
 
   /* Header Navbar & Hamburger Drawer */
