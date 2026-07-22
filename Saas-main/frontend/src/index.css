@@ -101,6 +101,12 @@ input:focus, textarea:focus, select:focus {
   align-items: center;
 }
 
+.header-toolbar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
 .logo-group {
   display: flex;
   align-items: center;
@@ -2206,6 +2212,30 @@ button, input, select, textarea, .btn, .tab-btn {
 
   .suggested-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  /* Pricing Section & Cards Mobile Polish */
+  .pricing-section {
+    margin-top: 2rem !important;
+    padding: 1.5rem 1rem !important;
+    border-radius: 16px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .pricing-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .pricing-card, .pricing-card-pro {
+    padding: 1.25rem 1rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   /* Customer Storefront & Cart Drawer */
