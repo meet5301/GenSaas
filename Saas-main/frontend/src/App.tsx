@@ -25,7 +25,9 @@ import {
   User,
   Languages,
   Heart,
-  Lock
+  Lock,
+  Menu,
+  X
 } from "lucide-react";
 
 // Types matching backend Pydantic models
@@ -326,6 +328,7 @@ export default function App() {
   // Navigation / View State
   const [view, setView] = useState<"builder" | "dashboard" | "storefront">("builder");
   const [activeTab, setActiveTab] = useState<"stock" | "billing" | "accounting" | "suppliers" | "customers" | "employees" | "store-settings" | "settings" | "analytics" | "orders" | "ai-insights">("stock");
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   // Auth User & Role State
   const [userRole, setUserRole] = useState<"Super Admin" | "Store Owner" | "Manager" | "Cashier" | "Customer">("Store Owner");
@@ -1507,7 +1510,6 @@ export default function App() {
       className={`app-container ${isDarkMode ? "dark-theme" : ""}`}
       style={{ "--theme-color": store?.theme_color || "var(--color-accent-red)" } as React.CSSProperties}
     >
-      
       {/* Header */}
       <header className="app-header" style={{ borderBottom: "1px solid var(--color-border)" }}>
         <div className="logo-group" style={{ cursor: "pointer" }} onClick={() => setView("builder")}>
@@ -1523,8 +1525,17 @@ export default function App() {
           )}
         </div>
 
+        {/* Mobile Hamburger Menu Toggle Button */}
+        <button 
+          className="mobile-menu-btn" 
+          onClick={() => setIsMobileNavOpen(!isMobileNavOpen)} 
+          aria-label="Toggle Navigation Menu"
+        >
+          {isMobileNavOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+
         {/* Global Toolbar */}
-        <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+        <div className={`header-toolbar-wrapper ${isMobileNavOpen ? "open" : ""}`}>
           
           {/* Language Selector */}
           <CustomDropdown
@@ -1532,8 +1543,8 @@ export default function App() {
             onChange={(val) => setLang(val as any)}
             options={[
               { value: "en", label: "English" },
-              { value: "hi", label: "à¤¹à¤¿à¤‚à¤¦à¥€ (Hindi)" },
-              { value: "gu", label: "àª—à«àªœàª°àª¾àª¤à«€ (Gujarati)" }
+              { value: "hi", label: "हिंदी (Hindi)" },
+              { value: "gu", label: "ગુજરાતી (Gujarati)" }
             ]}
             icon={<Languages size={15} style={{ color: "var(--color-text-muted)" }} />}
           />
@@ -1578,9 +1589,9 @@ export default function App() {
 
           {view === "builder" && (
             <div className="nav-links-center" style={{ display: "flex", gap: "2rem" }}>
-              <button onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 500 }}>Features</button>
-              <button onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 500 }}>How it Works</button>
-              <button onClick={() => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 500 }}>About</button>
+              <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }); }} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 500 }}>Features</button>
+              <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 500 }}>How it Works</button>
+              <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("about")?.scrollIntoView({ behavior: "smooth" }); }} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 500 }}>About</button>
             </div>
           )}
 
@@ -1589,6 +1600,7 @@ export default function App() {
               store ? (
                 <button 
                   onClick={() => {
+                    setIsMobileNavOpen(false);
                     if (isOwnerVerified) {
                       setView("dashboard");
                     } else {
@@ -1601,17 +1613,18 @@ export default function App() {
                   {t("ownerPanel")}
                 </button>
               ) : (
-                <button onClick={() => document.getElementById("prompt-container")?.scrollIntoView({ behavior: "smooth" })} className="btn btn-primary" style={{ borderRadius: "50px", backgroundColor: "var(--color-accent-red)" }}>
+                <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("prompt-container")?.scrollIntoView({ behavior: "smooth" }); }} className="btn btn-primary" style={{ borderRadius: "50px", backgroundColor: "var(--color-accent-red)" }}>
                   Get Started
                 </button>
               )
             ) : (
               <>
-                <button onClick={() => setView("builder")} className="btn btn-secondary">
+                <button onClick={() => { setIsMobileNavOpen(false); setView("builder"); }} className="btn btn-secondary">
                   Create New
                 </button>
                 <button 
                   onClick={() => {
+                    setIsMobileNavOpen(false);
                     if (view === "dashboard") {
                       setView("storefront");
                     } else {
