@@ -644,22 +644,10 @@ def unlock_module(
         return {"message": f"Successfully unlocked {body.module_id} using 49 signup points!", "unlocked": True}
 
     elif body.payment_method == "payment":
-        unlock = models.ModuleAccess(
-            user_id=current_user.id,
-            module_id=body.module_id,
-            unlocked_via="payment"
+        raise HTTPException(
+            status_code=400,
+            detail="Direct payment is disabled. Modules can only be unlocked by sharing your referral link with store owners (5 referrals for Module B, 12 for Module C) or using signup points for Module A."
         )
-        tx = models.TransactionRecord(
-            user_id=current_user.id,
-            type="payment",
-            amount=float(price),
-            module_id=body.module_id
-        )
-        db.add(unlock)
-        db.add(tx)
-        db.commit()
-
-        return {"message": f"Successfully unlocked {body.module_id} via payment of ₹{price}!", "unlocked": True}
 
     else:
         raise HTTPException(status_code=400, detail="Invalid payment method specified.")

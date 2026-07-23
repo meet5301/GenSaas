@@ -573,12 +573,30 @@ export default function App() {
     }
   };
 
+  // Share to Unlock Handler
+  const handleShareToUnlock = (moduleId: string, requiredRefs: number) => {
+    const refCode = dashboardSummary.referral?.referral_code || "REF-CODE";
+    const shareUrl = `${window.location.origin}/?ref=${refCode}`;
+    try {
+      navigator.clipboard.writeText(shareUrl);
+    } catch (e) {}
+    alert(`🔒 ${moduleId} unlocks automatically when ${requiredRefs} store owner(s) register using your referral link!\n\nReferral link copied to clipboard. Opening WhatsApp to share...`);
+    const waText = encodeURIComponent(`Join GenSaas Kirana Management & claim ₹49 free starter bonus! Register with my link: ${shareUrl}`);
+    window.open(`https://api.whatsapp.com/send?text=${waText}`, "_blank");
+  };
+
   // Unlock SaaS Module Handler
   const handleUnlockModule = async (moduleId: string, paymentMethod: "payment" | "points") => {
     const storedToken = localStorage.getItem("token");
     if (!storedToken) {
       alert("Please login first to unlock modules.");
       setIsAuthModalOpen(true);
+      return;
+    }
+
+    if (paymentMethod === "payment") {
+      const refsNeeded = moduleId === "Module B" ? 5 : moduleId === "Module C" ? 12 : 1;
+      handleShareToUnlock(moduleId, refsNeeded);
       return;
     }
 
@@ -1820,60 +1838,19 @@ export default function App() {
           {/* Main Action Group: SaaS Badges + Login/Signup + Role Selector side-by-side */}
           <div className="header-action-group">
             
-            {/* SaaS Wallet & Streak Badges */}
+            {/* Consolidated SaaS Rewards & Modules Pill */}
             {currentUser && (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }} className="no-print">
-                <button 
-                  onClick={() => setIsSaasModulesOpen(true)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.3rem",
-                    backgroundColor: "#EAE4D8",
-                    color: "#8B3A3A",
-                    border: "1px solid #E6DFD5",
-                    padding: "0.4rem 0.8rem",
-                    borderRadius: "8px",
-                    fontSize: "0.82rem",
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap"
-                  }}
-                >
-                  💰 {dashboardSummary.wallet.points_balance} Pts
-                </button>
-                <button 
-                  onClick={() => setIsSaasModulesOpen(true)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.3rem",
-                    backgroundColor: "#F4F0E8",
-                    color: "#607E87",
-                    border: "1px solid #E6DFD5",
-                    padding: "0.4rem 0.8rem",
-                    borderRadius: "8px",
-                    fontSize: "0.82rem",
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap"
-                  }}
-                >
-                  🔥 {dashboardSummary.streak.current_streak}d Streak
-                </button>
-                <button 
-                  onClick={() => setIsSaasModulesOpen(true)}
-                  className="btn btn-primary"
-                  style={{
-                    padding: "0.4rem 0.85rem",
-                    fontSize: "0.82rem",
-                    borderRadius: "10px",
-                    whiteSpace: "nowrap"
-                  }}
-                >
-                  📦 SaaS Modules
-                </button>
-              </div>
+              <button 
+                onClick={() => setIsSaasModulesOpen(true)}
+                className="rewards-status-pill no-print"
+                title="View SaaS Modules & Rewards"
+              >
+                <span>⚡ Modules & Rewards</span>
+                <span style={{ opacity: 0.4 }}>|</span>
+                <span>💰 {dashboardSummary.wallet.points_balance} Pts</span>
+                <span style={{ opacity: 0.4 }}>|</span>
+                <span>🔥 {dashboardSummary.streak.current_streak}d</span>
+              </button>
             )}
 
             {/* Auth Trigger Button */}
@@ -5946,7 +5923,7 @@ export default function App() {
                         Essential E-Commerce Storefront & Inventory Suite.
                       </p>
                       <div style={{ fontSize: "0.75rem", color: "#166534", backgroundColor: "#dcfce7", padding: "0.4rem 0.6rem", borderRadius: "6px", marginBottom: "1rem" }}>
-                        ✓ Unlockable with 49 Signup Points or Direct Payment ₹49.
+                        ✓ Unlockable with 49 Signup Points or Referral Share.
                       </div>
                     </div>
 
@@ -5964,10 +5941,10 @@ export default function App() {
                           Use 49 Signup Points
                         </button>
                         <button 
-                          onClick={() => handleUnlockModule("Module A", "payment")}
-                          style={{ backgroundColor: "#f1f5f9", color: "#334155", border: "1px solid #cbd5e1", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                          onClick={() => handleShareToUnlock("Module A", 1)}
+                          style={{ backgroundColor: "#25D366", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
                         >
-                          Pay ₹49
+                          Share Link to Unlock
                         </button>
                       </div>
                     )}
@@ -5993,7 +5970,7 @@ export default function App() {
                       </p>
                       
                       <div style={{ fontSize: "0.75rem", color: "#92400e", backgroundColor: "#fffbeb", padding: "0.4rem 0.6rem", borderRadius: "6px", marginBottom: "0.5rem" }}>
-                        🔥 Auto-unlock via 90-Day Unbroken Streak or Direct Payment ₹99.
+                        🔥 Auto-unlock via 5 Referral Shares or 90-Day Streak.
                       </div>
                       
                       <div style={{ marginBottom: "1rem" }}>
@@ -6014,13 +5991,13 @@ export default function App() {
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                         <button 
-                          onClick={() => handleUnlockModule("Module B", "payment")}
-                          style={{ backgroundColor: "#E85A4F", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                          onClick={() => handleShareToUnlock("Module B", 5)}
+                          style={{ backgroundColor: "#25D366", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
                         >
-                          Pay ₹99
+                          Share Link to Unlock (5 Referrals)
                         </button>
-                        <span style={{ fontSize: "0.72rem", color: "#991b1b", textAlign: "center" }}>
-                          🚫 Signup points cannot be used for Module B
+                        <span style={{ fontSize: "0.72rem", color: "#92400e", textAlign: "center" }}>
+                          📲 Share with 5 store owners to unlock ₹99 plan free!
                         </span>
                       </div>
                     )}
@@ -6046,7 +6023,7 @@ export default function App() {
                       </p>
                       
                       <div style={{ fontSize: "0.75rem", color: "#86198f", backgroundColor: "#fdf4ff", padding: "0.4rem 0.6rem", borderRadius: "6px", marginBottom: "0.5rem" }}>
-                        👑 Auto-unlock via 1-Year (365 Days) Streak or Direct Payment ₹129.
+                        👑 Auto-unlock via 12 Referral Shares or 365-Day Streak.
                       </div>
 
                       <div style={{ marginBottom: "1rem" }}>
@@ -6067,13 +6044,13 @@ export default function App() {
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                         <button 
-                          onClick={() => handleUnlockModule("Module C", "payment")}
-                          style={{ backgroundColor: "#E85A4F", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                          onClick={() => handleShareToUnlock("Module C", 12)}
+                          style={{ backgroundColor: "#25D366", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
                         >
-                          Pay ₹129
+                          Share Link to Unlock (12 Referrals)
                         </button>
-                        <span style={{ fontSize: "0.72rem", color: "#991b1b", textAlign: "center" }}>
-                          🚫 Signup points cannot be used for Module C
+                        <span style={{ fontSize: "0.72rem", color: "#86198f", textAlign: "center" }}>
+                          📲 Share with 12 store owners to unlock ₹129 plan free!
                         </span>
                       </div>
                     )}
