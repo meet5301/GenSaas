@@ -1778,13 +1778,15 @@ export default function App() {
       <header className="app-header" style={{ borderBottom: "1px solid var(--color-border)" }}>
         <div className="logo-group" style={{ cursor: "pointer" }} onClick={() => setView("builder")}>
           {view === "builder" ? (
-            <span style={{ fontFamily: "var(--font-serif)", fontSize: "1.8rem", fontWeight: 600, color: "var(--color-accent-red)" }}>GenSaas</span>
+            <span style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-dark)", letterSpacing: "-0.03em" }}>
+              Gen<span style={{ color: "var(--color-accent-red)" }}>Saas</span>
+            </span>
           ) : (
             <>
               <div className="logo-icon">
-                <StoreIcon size={24} />
+                <StoreIcon size={20} />
               </div>
-              <span>{store?.name || "GenSaas"}</span>
+              <span style={{ fontWeight: 700, fontSize: "1.2rem" }}>{store?.name || "GenSaas"}</span>
             </>
           )}
         </div>
@@ -1795,7 +1797,7 @@ export default function App() {
           onClick={() => setIsMobileNavOpen(!isMobileNavOpen)} 
           aria-label="Toggle Navigation Menu"
         >
-          {isMobileNavOpen ? <X size={22} /> : <Menu size={22} />}
+          {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
         {/* Global Toolbar */}
@@ -1813,12 +1815,12 @@ export default function App() {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "0.3rem",
-                    backgroundColor: "rgba(232, 90, 79, 0.1)",
-                    color: "#E85A4F",
-                    border: "1px solid rgba(232, 90, 79, 0.3)",
-                    padding: "0.35rem 0.75rem",
-                    borderRadius: "20px",
-                    fontSize: "0.8rem",
+                    backgroundColor: "rgba(79, 70, 229, 0.08)",
+                    color: "var(--color-accent-red)",
+                    border: "1px solid rgba(79, 70, 229, 0.2)",
+                    padding: "0.4rem 0.8rem",
+                    borderRadius: "10px",
+                    fontSize: "0.82rem",
                     fontWeight: 700,
                     cursor: "pointer",
                     whiteSpace: "nowrap"
@@ -1835,9 +1837,9 @@ export default function App() {
                     backgroundColor: "rgba(245, 158, 11, 0.1)",
                     color: "#d97706",
                     border: "1px solid rgba(245, 158, 11, 0.3)",
-                    padding: "0.35rem 0.75rem",
-                    borderRadius: "20px",
-                    fontSize: "0.8rem",
+                    padding: "0.4rem 0.8rem",
+                    borderRadius: "10px",
+                    fontSize: "0.82rem",
                     fontWeight: 700,
                     cursor: "pointer",
                     whiteSpace: "nowrap"
@@ -1849,10 +1851,9 @@ export default function App() {
                   onClick={() => setIsSaasModulesOpen(true)}
                   className="btn btn-primary"
                   style={{
-                    padding: "0.35rem 0.75rem",
-                    fontSize: "0.78rem",
-                    borderRadius: "20px",
-                    backgroundColor: "#E85A4F",
+                    padding: "0.4rem 0.85rem",
+                    fontSize: "0.82rem",
+                    borderRadius: "10px",
                     whiteSpace: "nowrap"
                   }}
                 >
@@ -1866,20 +1867,18 @@ export default function App() {
               {currentUser ? (
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hello, {currentUser.name}</span>
-                  <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: "0.35rem 0.75rem", fontSize: "0.78rem", borderRadius: "12px", whiteSpace: "nowrap" }}>Logout</button>
+                  <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: "0.35rem 0.75rem", fontSize: "0.78rem", borderRadius: "10px", whiteSpace: "nowrap" }}>Logout</button>
                 </div>
               ) : (
                 <button 
                   onClick={() => { setIsAuthModalOpen(true); setAuthMode("login"); setOtpStep("phone"); }} 
                   className="btn btn-primary" 
                   style={{ 
-                    padding: "0.4rem 0.9rem", 
-                    fontSize: "0.82rem", 
-                    borderRadius: "20px", 
-                    fontWeight: 700,
-                    whiteSpace: "nowrap",
-                    backgroundColor: "#E85A4F",
-                    boxShadow: "0 2px 8px rgba(232, 90, 79, 0.25)"
+                    padding: "0.45rem 1rem", 
+                    fontSize: "0.85rem", 
+                    borderRadius: "10px", 
+                    fontWeight: 600,
+                    whiteSpace: "nowrap"
                   }}
                 >
                   🔑 Login / Signup
@@ -1907,16 +1906,16 @@ export default function App() {
                 ]}
                 icon={<User size={15} style={{ color: "var(--color-accent-red)" }} />}
                 color="var(--color-accent-red)"
-                style={{ borderColor: "var(--color-accent-red)" }}
+                style={{ borderColor: "var(--color-border)" }}
               />
             )}
           </div>
 
           {view === "builder" && (
-            <div className="nav-links-center" style={{ display: "flex", gap: "2rem" }}>
-              <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }); }} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 500 }}>Features</button>
-              <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 500 }}>How it Works</button>
-              <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("about")?.scrollIntoView({ behavior: "smooth" }); }} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 500 }}>About</button>
+            <div className="nav-links-center" style={{ display: "flex", gap: "1.5rem" }}>
+              <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("features")?.scrollIntoView({ behavior: "smooth" }); }} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>Features</button>
+              <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); }} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>How it Works</button>
+              <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("about")?.scrollIntoView({ behavior: "smooth" }); }} style={{ background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>About</button>
             </div>
           )}
 
@@ -1933,12 +1932,12 @@ export default function App() {
                     }
                   }} 
                   className="btn btn-primary" 
-                  style={{ borderRadius: "50px", backgroundColor: "var(--color-accent-red)" }}
+                  style={{ borderRadius: "10px" }}
                 >
                   {t("ownerPanel")}
                 </button>
               ) : (
-                <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("prompt-container")?.scrollIntoView({ behavior: "smooth" }); }} className="btn btn-primary" style={{ borderRadius: "50px", backgroundColor: "var(--color-accent-red)" }}>
+                <button onClick={() => { setIsMobileNavOpen(false); document.getElementById("prompt-container")?.scrollIntoView({ behavior: "smooth" }); }} className="btn btn-primary" style={{ borderRadius: "10px" }}>
                   Get Started
                 </button>
               )
@@ -5600,15 +5599,15 @@ export default function App() {
                 {/* OTP Step Progress Header */}
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem", position: "relative" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#E85A4F", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>1</span>
+                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "var(--color-accent-red)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>1</span>
                     <span style={{ fontSize: "0.8rem", fontWeight: otpStep === "phone" ? "bold" : "normal" }}>Phone</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: otpStep === "otp" || otpStep === "details" ? "#E85A4F" : "#e2e8f0", color: otpStep === "otp" || otpStep === "details" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>2</span>
+                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: otpStep === "otp" || otpStep === "details" ? "var(--color-accent-red)" : "#e2e8f0", color: otpStep === "otp" || otpStep === "details" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>2</span>
                     <span style={{ fontSize: "0.8rem", fontWeight: otpStep === "otp" ? "bold" : "normal" }}>OTP</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: otpStep === "details" ? "#E85A4F" : "#e2e8f0", color: otpStep === "details" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>3</span>
+                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: otpStep === "details" ? "var(--color-accent-red)" : "#e2e8f0", color: otpStep === "details" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>3</span>
                     <span style={{ fontSize: "0.8rem", fontWeight: otpStep === "details" ? "bold" : "normal" }}>Gmail & Set</span>
                   </div>
                 </div>
@@ -5624,10 +5623,10 @@ export default function App() {
                         placeholder="e.g. 9825098250" 
                         value={mobileAuthForm.phone} 
                         onChange={e => setMobileAuthForm({ ...mobileAuthForm, phone: e.target.value })} 
-                        style={{ padding: "0.6rem5 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1" }} 
+                        style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1" }} 
                       />
                     </div>
-                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#E85A4F", fontWeight: 700 }}>
+                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "10px", fontWeight: 700 }}>
                       {otpLoading ? "Sending OTP..." : "Send 6-Digit OTP"}
                     </button>
                   </form>
@@ -5636,7 +5635,7 @@ export default function App() {
                 {/* Step 2: 6-Digit OTP Verification */}
                 {otpStep === "otp" && (
                   <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <div style={{ backgroundColor: "#F3E8E2", border: "1px solid #EFEBE6", padding: "0.75rem", borderRadius: "8px", fontSize: "0.82rem", color: "#943f3f" }}>
+                    <div style={{ backgroundColor: "#EEF2FF", border: "1px solid #C7D2FE", padding: "0.75rem", borderRadius: "8px", fontSize: "0.82rem", color: "#3730A3" }}>
                       {otpMessage || `OTP code sent to ${mobileAuthForm.phone}. (Test code: 123456)`}
                     </div>
                     <div className="form-group">
@@ -5645,7 +5644,7 @@ export default function App() {
                         <button 
                           type="button" 
                           onClick={() => setMobileAuthForm(prev => ({ ...prev, otp_code: "123456" }))}
-                          style={{ background: "none", border: "none", color: "#E85A4F", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}
+                          style={{ background: "none", border: "none", color: "var(--color-accent-red)", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}
                         >
                           Use Test Code 123456
                         </button>
@@ -5659,7 +5658,7 @@ export default function App() {
                         style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1", letterSpacing: "2px", fontWeight: "bold" }} 
                       />
                     </div>
-                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#E85A4F", fontWeight: 700 }}>
+                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "10px", fontWeight: 700 }}>
                       {otpLoading ? "Verifying..." : "Verify OTP Code"}
                     </button>
                     <button type="button" onClick={() => setOtpStep("phone")} style={{ background: "none", border: "none", color: "#64748b", fontSize: "0.8rem", cursor: "pointer" }}>
@@ -5710,28 +5709,27 @@ export default function App() {
                       />
                     </div>
 
-                    <div style={{ backgroundColor: "#fef3c7", border: "1px solid #fde68a", padding: "0.75rem", borderRadius: "8px", fontSize: "0.78rem", color: "#92400e" }}>
-                      🛡️ <strong>Fraud Check Rule:</strong> First-time unique phone + email gets <strong>49 Bonus Points (₹49 value)</strong> credited to wallet. If phone or email exists, bonus will be blocked.
+                    <div style={{ backgroundColor: "#FEF3C7", border: "1px solid #FDE68A", padding: "0.75rem", borderRadius: "8px", fontSize: "0.78rem", color: "#92400E" }}>
+                      🛡️ <strong>Bonus Rule:</strong> First-time unique phone + email gets <strong>49 Bonus Points (₹49 value)</strong> credited to wallet.
                     </div>
 
-                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#E85A4F", fontWeight: 700 }}>
+                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "10px", fontWeight: 700 }}>
                       {otpLoading ? "Creating Account..." : "Complete Signup & Claim 49 Points Bonus"}
                     </button>
                   </form>
                 )}
               </div>
             ) : (
-              /* Login Form (Both Phone Number AND Gmail Required) */
+              /* Login Form */
               <form onSubmit={handleMobileLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <div style={{ backgroundColor: "#F3E8E2", border: "1px solid #EFEBE6", padding: "0.6rem 0.8rem", borderRadius: "8px", fontSize: "0.8rem", color: "#943f3f", fontWeight: 600 }}>
-                  🔒 Both Mobile Phone Number AND Gmail address are mandatory for login.
+                <div style={{ backgroundColor: "#EEF2FF", border: "1px solid #C7D2FE", padding: "0.6rem 0.8rem", borderRadius: "8px", fontSize: "0.8rem", color: "#3730A3", fontWeight: 600 }}>
+                  🔒 Enter your Mobile Phone Number or Gmail address to log in.
                 </div>
 
                 <div className="form-group">
-                  <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Mobile Phone Number *</label>
+                  <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Mobile Phone Number</label>
                   <input 
                     type="tel" 
-                    required 
                     placeholder="e.g. 9825098250" 
                     value={mobileAuthForm.phone} 
                     onChange={e => setMobileAuthForm({ ...mobileAuthForm, phone: e.target.value })} 
@@ -5740,10 +5738,9 @@ export default function App() {
                 </div>
 
                 <div className="form-group">
-                  <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Gmail Address (@gmail.com) *</label>
+                  <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Gmail Address (@gmail.com)</label>
                   <input 
                     type="email" 
-                    required 
                     placeholder="e.g. suresh.patel@gmail.com" 
                     value={mobileAuthForm.email} 
                     onChange={e => setMobileAuthForm({ ...mobileAuthForm, email: e.target.value })} 
@@ -5763,7 +5760,7 @@ export default function App() {
                   />
                 </div>
 
-                <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", marginTop: "0.5rem", borderRadius: "50px", backgroundColor: "#E85A4F", fontWeight: 700 }}>
+                <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", marginTop: "0.5rem", borderRadius: "10px", fontWeight: 700 }}>
                   {otpLoading ? "Logging in..." : "Login"}
                 </button>
               </form>
@@ -5773,14 +5770,14 @@ export default function App() {
               {authMode === "login" ? (
                 <span>
                   Don't have an account?{" "}
-                  <button onClick={() => { setAuthMode("signup"); setOtpStep("phone"); }} style={{ border: "none", background: "none", color: "#E85A4F", fontWeight: 700, cursor: "pointer" }}>
+                  <button onClick={() => { setAuthMode("signup"); setOtpStep("phone"); }} style={{ border: "none", background: "none", color: "var(--color-accent-red)", fontWeight: 700, cursor: "pointer" }}>
                     Sign Up via OTP
                   </button>
                 </span>
               ) : (
                 <span>
                   Already have an account?{" "}
-                  <button onClick={() => setAuthMode("login")} style={{ border: "none", background: "none", color: "#E85A4F", fontWeight: 700, cursor: "pointer" }}>
+                  <button onClick={() => setAuthMode("login")} style={{ border: "none", background: "none", color: "var(--color-accent-red)", fontWeight: 700, cursor: "pointer" }}>
                     Login
                   </button>
                 </span>

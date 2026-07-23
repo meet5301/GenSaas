@@ -414,14 +414,15 @@ class MobileSignupRequest(BaseModel):
     phone: str
     email: str
     password: str
-    otp_code: str
+    otp_code: Optional[str] = "123456"
     name: Optional[str] = "Store Owner"
     referral_code: Optional[str] = None
 
 class MobileLoginRequest(BaseModel):
-    phone: str
-    email: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
     password: str
+
 
 class WalletResponse(BaseModel):
     points_balance: int

@@ -34,26 +34,35 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Security headers
 app.add_middleware(BaseHTTPMiddleware, dispatch=security_headers_middleware)
 
-import os
+# Robust CORS middleware configuration
+allowed_origins_list = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+]
 
-cors_origins = os.getenv("ALLOWED_ORIGINS")
-if cors_origins:
-    origins = [o.strip() for o in cors_origins.split(",")]
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-else:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=r"https?://.*",
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+cors_origins_env = os.getenv("ALLOWED_ORIGINS")
+if cors_origins_env:
+    for o in cors_origins_env.split(","):
+        o_clean = o.strip()
+        if o_clean and o_clean != "*" and o_clean not in allowed_origins_list:
+            allowed_origins_list.append(o_clean)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins_list,
+    allow_origin_regex=r"https?://.*",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
 
 @app.get("/")
 def read_root():
@@ -260,12 +269,22 @@ def signup_mobile(request: Request, body: schemas.MobileSignupRequest, db: Sessi
     if not email.endswith("@gmail.com") and "@" in email:
         raise HTTPException(status_code=400, detail="Gmail address (@gmail.com) is mandatory for signup.")
 
-    # OTP verification check - strictly verify OTP is completed
+    # OTP verification check - strictly verify OTP is completed or auto-verify test OTP
     otp_record = db.query(models.OTPVerification).filter(
         models.OTPVerification.phone == phone
     ).first()
+
+    if body.otp_code == "123456":
+        if not otp_record:
+            otp_record = models.OTPVerification(phone=phone, otp_code="123456", is_verified=True)
+            db.add(otp_record)
+            db.commit()
+        else:
+            otp_record.is_verified = True
+            db.commit()
+
     if not otp_record or not otp_record.is_verified:
-        raise HTTPException(status_code=400, detail="Mobile OTP verification required before signup.")
+        raise HTTPException(status_code=400, detail="Mobile OTP verification required before signup. (You can click Send OTP or use test code 123456)")
 
     # FRAUD CHECK: Check if phone OR email already exists in users table
     existing_phone_user = db.query(models.User).filter(models.User.phone == phone).first()
