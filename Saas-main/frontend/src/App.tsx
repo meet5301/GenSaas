@@ -7,7 +7,6 @@ import {
   Package, 
   Plus, 
   Trash2, 
-  Globe, 
   Eye, 
   MapPin, 
   Phone, 
@@ -350,21 +349,46 @@ export default function App() {
   const [authForm, setAuthForm] = useState({ email: "", password: "", name: "", phone: "", role: "Store Owner" });
 
   // SaaS Mobile OTP Auth & Fraud-Checked Bonus States
-  const [mobileAuthForm, setMobileAuthForm] = useState({ phone: "", email: "", password: "", otp_code: "123456", name: "" });
+  const [mobileAuthForm, setMobileAuthForm] = useState({ phone: "", email: "", password: "", otp_code: "", name: "", referral_code: "" });
   const [otpStep, setOtpStep] = useState<"phone" | "otp" | "details">("phone");
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpMessage, setOtpMessage] = useState<string | null>(null);
 
-  // SaaS Wallet, Streak & Module Dashboard States
+  // Auto-detect referral code from URL query parameter ?ref=CODE
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refParam = urlParams.get("ref");
+    if (refParam) {
+      setMobileAuthForm(prev => ({ ...prev, referral_code: refParam }));
+    }
+  }, []);
+
+  // SaaS Wallet, Streak, Referral & Module Dashboard States
   const [isSaasModulesOpen, setIsSaasModulesOpen] = useState(false);
   const [dashboardSummary, setDashboardSummary] = useState<{
     wallet: { points_balance: number; bonus_claimed: boolean };
     streak: { current_streak: number; last_active_date: string | null; longest_streak: number };
+    referral?: {
+      referral_code: string;
+      referral_count: number;
+      referrals_needed_for_99: number;
+      referrals_needed_for_129: number;
+      module_b_unlocked: boolean;
+      module_c_unlocked: boolean;
+    };
     unlocked_modules: Array<{ module_id: string; unlocked_via: string; unlocked_at: string }>;
     recent_transactions: Array<{ id: number; type: string; amount: number; module_id?: string; timestamp: string }>;
   }>({
     wallet: { points_balance: 0, bonus_claimed: false },
     streak: { current_streak: 0, last_active_date: null, longest_streak: 0 },
+    referral: {
+      referral_code: "",
+      referral_count: 0,
+      referrals_needed_for_99: 5,
+      referrals_needed_for_129: 12,
+      module_b_unlocked: false,
+      module_c_unlocked: false
+    },
     unlocked_modules: [],
     recent_transactions: []
   });
@@ -468,7 +492,8 @@ export default function App() {
           email: mobileAuthForm.email,
           password: mobileAuthForm.password,
           otp_code: mobileAuthForm.otp_code,
-          name: mobileAuthForm.name || "Store Owner"
+          name: mobileAuthForm.name || "Store Owner",
+          referral_code: mobileAuthForm.referral_code
         })
       });
       const data = await res.json();
@@ -479,7 +504,7 @@ export default function App() {
       setCurrentUser(data.user);
       setIsAuthModalOpen(false);
       setOtpStep("phone");
-      setMobileAuthForm({ phone: "", email: "", password: "", otp_code: "123456", name: "" });
+      setMobileAuthForm({ phone: "", email: "", password: "", otp_code: "", name: "", referral_code: "" });
       
       alert(data.message);
       fetchDashboardSummary();
@@ -1795,9 +1820,9 @@ export default function App() {
                   display: "flex",
                   alignItems: "center",
                   gap: "0.3rem",
-                  backgroundColor: "rgba(79, 70, 229, 0.1)",
-                  color: "#4f46e5",
-                  border: "1px solid rgba(79, 70, 229, 0.3)",
+                  backgroundColor: "rgba(232, 90, 79, 0.1)",
+                  color: "#E85A4F",
+                  border: "1px solid rgba(232, 90, 79, 0.3)",
                   padding: "0.3rem 0.75rem",
                   borderRadius: "20px",
                   fontSize: "0.82rem",
@@ -1832,7 +1857,7 @@ export default function App() {
                   padding: "0.3rem 0.75rem",
                   fontSize: "0.78rem",
                   borderRadius: "20px",
-                  backgroundColor: "#4f46e5"
+                  backgroundColor: "#E85A4F"
                 }}
               >
                 📦 SaaS Modules
@@ -2137,37 +2162,48 @@ export default function App() {
               )}
             </div>
 
-            {/* How it works */}
-            <div id="features" className="info-section">
-              <h2 className="section-title">The Path to Creation</h2>
-              <p className="section-subtitle">A seamless transition from voice description to a live retail business application.</p>
-              
-              <div id="how-it-works" className="path-timeline">
-                <div className="timeline-step">
-                  <div className="timeline-content">
-                    <div className="timeline-step-tag">01 / CONCEPTUALIZE</div>
-                    <h3>Speak or Type</h3>
-                    <p>Describe your inventory and store values in English, Hindi, or Gujarati. Our local AI populates layout, catalog, and designs.</p>
-                  </div>
-                  <div className="timeline-icon-box" style={{ backgroundColor: "#FDF6F0" }}><Mic size={20} /></div>
+            {/* How it works & Referral Share System */}
+            <div id="features" className="info-section how-it-works-section">
+              <div style={{ textAlign: "center", maxWidth: "800px", margin: "0 auto" }}>
+                <h2 className="section-title">How GenSaas Works</h2>
+                <p className="section-subtitle">Start free with 49 bonus points & unlock premium ₹99 and ₹129 plans simply by referring friends!</p>
+              </div>
+
+              <div id="how-it-works" className="how-it-works-grid">
+                <div className="how-it-works-card">
+                  <div className="how-it-works-step-num">1</div>
+                  <h3 style={{ fontSize: "1.15rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.5rem" }}>Register & Claim ₹49</h3>
+                  <p style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+                    Sign up with your Mobile number + Real SMS OTP. Get <strong>49 Bonus Points</strong> credited instantly to start POS billing for Starter features.
+                  </p>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#166534", backgroundColor: "#dcfce7", padding: "0.25rem 0.6rem", borderRadius: "12px", display: "inline-block", marginTop: "0.75rem" }}>✓ ₹49 Starter Included</span>
                 </div>
 
-                <div className="timeline-step">
-                  <div className="timeline-content">
-                    <div className="timeline-step-tag">02 / GENERATION</div>
-                    <h3>AI Creation</h3>
-                    <p>GenSaas's catalog matching engines design standard price listings, product images, and populate initial stock configurations.</p>
-                  </div>
-                  <div className="timeline-icon-box"><Sparkles size={20} /></div>
+                <div className="how-it-works-card">
+                  <div className="how-it-works-step-num">2</div>
+                  <h3 style={{ fontSize: "1.15rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.5rem" }}>Smart Store & Billing</h3>
+                  <p style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+                    Add inventory catalog, generate instant customer invoices, share WhatsApp bills, and process cashier sales smoothly.
+                  </p>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#E85A4F", backgroundColor: "#F3E8E2", padding: "0.25rem 0.6rem", borderRadius: "12px", display: "inline-block", marginTop: "0.75rem" }}>⚡ Real-time POS</span>
                 </div>
 
-                <div className="timeline-step">
-                  <div className="timeline-content">
-                    <div className="timeline-step-tag">03 / MANAGE</div>
-                    <h3>Full POS System</h3>
-                    <p>Launch an admin control board immediately featuring employee logs, supplier ledgers, invoice tax forms, and profit spreadsheets.</p>
-                  </div>
-                  <div className="timeline-icon-box" style={{ backgroundColor: "#FDF6F0" }}><Globe size={20} /></div>
+                <div className="how-it-works-card" style={{ border: "2px solid #E85A4F" }}>
+                  <div className="how-it-works-step-num">3</div>
+                  <h3 style={{ fontSize: "1.15rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.5rem" }}>Refer 5 Friends → ₹99 Plan Free</h3>
+                  <p style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+                    Share your referral link with <strong>5 store owners/friends</strong>. Once 5 friends register & login, the <strong>₹99 Pro Plan</strong> (AI Inventory, Low stock alerts, Loyalty CRM) unlocks FREE!
+                  </p>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#92400e", backgroundColor: "#fef3c7", padding: "0.25rem 0.6rem", borderRadius: "12px", display: "inline-block", marginTop: "0.75rem" }}>🎁 5 Referrals = ₹99 Pro Free</span>
+                </div>
+
+                <div className="how-it-works-card" style={{ border: "2px solid #a855f7" }}>
+                  <div className="how-it-works-step-num">4</div>
+                  <h3 style={{ fontSize: "1.15rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.5rem" }}>Refer 12 Friends → ₹129 Plan Free</h3>
+                  <p style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+                    Share with <strong>12 friends</strong>. When 12 friends log in, the <strong>₹129 Enterprise Plan</strong> (Multi-warehouse, P&L profit ledger, custom PDF branding) unlocks FREE!
+                  </p>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7e22ce", backgroundColor: "#f3e8ff", padding: "0.25rem 0.6rem", borderRadius: "12px", display: "inline-block", marginTop: "0.75rem" }}>🚀 12 Referrals = ₹129 Enterprise Free</span>
                 </div>
               </div>
             </div>
@@ -5555,15 +5591,15 @@ export default function App() {
                 {/* OTP Step Progress Header */}
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem", position: "relative" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#4f46e5", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>1</span>
+                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#E85A4F", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>1</span>
                     <span style={{ fontSize: "0.8rem", fontWeight: otpStep === "phone" ? "bold" : "normal" }}>Phone</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: otpStep === "otp" || otpStep === "details" ? "#4f46e5" : "#e2e8f0", color: otpStep === "otp" || otpStep === "details" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>2</span>
+                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: otpStep === "otp" || otpStep === "details" ? "#E85A4F" : "#e2e8f0", color: otpStep === "otp" || otpStep === "details" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>2</span>
                     <span style={{ fontSize: "0.8rem", fontWeight: otpStep === "otp" ? "bold" : "normal" }}>OTP</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: otpStep === "details" ? "#4f46e5" : "#e2e8f0", color: otpStep === "details" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>3</span>
+                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: otpStep === "details" ? "#E85A4F" : "#e2e8f0", color: otpStep === "details" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>3</span>
                     <span style={{ fontSize: "0.8rem", fontWeight: otpStep === "details" ? "bold" : "normal" }}>Gmail & Set</span>
                   </div>
                 </div>
@@ -5582,7 +5618,7 @@ export default function App() {
                         style={{ padding: "0.6rem5 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1" }} 
                       />
                     </div>
-                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#4f46e5", fontWeight: 700 }}>
+                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#E85A4F", fontWeight: 700 }}>
                       {otpLoading ? "Sending OTP..." : "Send 6-Digit OTP"}
                     </button>
                   </form>
@@ -5605,7 +5641,7 @@ export default function App() {
                         style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1", letterSpacing: "2px", fontWeight: "bold" }} 
                       />
                     </div>
-                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#4f46e5", fontWeight: 700 }}>
+                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#E85A4F", fontWeight: 700 }}>
                       {otpLoading ? "Verifying..." : "Verify OTP Code"}
                     </button>
                     <button type="button" onClick={() => setOtpStep("phone")} style={{ background: "none", border: "none", color: "#64748b", fontSize: "0.8rem", cursor: "pointer" }}>
@@ -5660,7 +5696,7 @@ export default function App() {
                       🛡️ <strong>Fraud Check Rule:</strong> First-time unique phone + email gets <strong>49 Bonus Points (₹49 value)</strong> credited to wallet. If phone or email exists, bonus will be blocked.
                     </div>
 
-                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#4f46e5", fontWeight: 700 }}>
+                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#E85A4F", fontWeight: 700 }}>
                       {otpLoading ? "Creating Account..." : "Complete Signup & Claim 49 Points Bonus"}
                     </button>
                   </form>
@@ -5669,7 +5705,7 @@ export default function App() {
             ) : (
               /* Login Form (Both Phone Number AND Gmail Required) */
               <form onSubmit={handleMobileLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <div style={{ backgroundColor: "#e0e7ff", border: "1px solid #c7d2fe", padding: "0.6rem 0.8rem", borderRadius: "8px", fontSize: "0.8rem", color: "#3730a3", fontWeight: 600 }}>
+                <div style={{ backgroundColor: "#F3E8E2", border: "1px solid #EFEBE6", padding: "0.6rem 0.8rem", borderRadius: "8px", fontSize: "0.8rem", color: "#943f3f", fontWeight: 600 }}>
                   🔒 Both Mobile Phone Number AND Gmail address are mandatory for login.
                 </div>
 
@@ -5709,7 +5745,7 @@ export default function App() {
                   />
                 </div>
 
-                <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", marginTop: "0.5rem", borderRadius: "50px", backgroundColor: "#4f46e5", fontWeight: 700 }}>
+                <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", marginTop: "0.5rem", borderRadius: "50px", backgroundColor: "#E85A4F", fontWeight: 700 }}>
                   {otpLoading ? "Logging in..." : "Login"}
                 </button>
               </form>
@@ -5719,14 +5755,14 @@ export default function App() {
               {authMode === "login" ? (
                 <span>
                   Don't have an account?{" "}
-                  <button onClick={() => { setAuthMode("signup"); setOtpStep("phone"); }} style={{ border: "none", background: "none", color: "#4f46e5", fontWeight: 700, cursor: "pointer" }}>
+                  <button onClick={() => { setAuthMode("signup"); setOtpStep("phone"); }} style={{ border: "none", background: "none", color: "#E85A4F", fontWeight: 700, cursor: "pointer" }}>
                     Sign Up via OTP
                   </button>
                 </span>
               ) : (
                 <span>
                   Already have an account?{" "}
-                  <button onClick={() => setAuthMode("login")} style={{ border: "none", background: "none", color: "#4f46e5", fontWeight: 700, cursor: "pointer" }}>
+                  <button onClick={() => setAuthMode("login")} style={{ border: "none", background: "none", color: "#E85A4F", fontWeight: 700, cursor: "pointer" }}>
                     Login
                   </button>
                 </span>
@@ -5753,15 +5789,95 @@ export default function App() {
               <button onClick={() => setIsSaasModulesOpen(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>×</button>
             </div>
 
+            {/* Referral Unlocks Card */}
+            <div className="referral-card" style={{ marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    🎁 Referral Rewards & Unlock Status
+                  </h3>
+                  <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.82rem", color: "#64748b" }}>
+                    Share your unique link with store owners. Unlock ₹99 and ₹129 plans 100% Free!
+                  </p>
+                </div>
+                <div style={{ backgroundColor: "#F3E8E2", color: "#943f3f", padding: "0.4rem 0.8rem", borderRadius: "20px", fontSize: "0.8rem", fontWeight: 800 }}>
+                  ⚡ {dashboardSummary.referral?.referral_count || 0} Successful Logins
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                {/* 5 Referrals -> Module B */}
+                <div style={{ backgroundColor: "#fffbeb", border: "1px solid #fef3c7", borderRadius: "12px", padding: "1rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+                    <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#92400e" }}>Module B (₹99 Pro Plan)</span>
+                    <span style={{ fontSize: "0.78rem", fontWeight: 800, color: dashboardSummary.referral?.module_b_unlocked ? "#166534" : "#d97706" }}>
+                      {dashboardSummary.referral?.module_b_unlocked ? "✓ UNLOCKED" : `${dashboardSummary.referral?.referral_count || 0}/5 Referrals`}
+                    </span>
+                  </div>
+                  <div className="referral-progress-bar">
+                    <div className="referral-progress-fill" style={{ width: `${Math.min(100, ((dashboardSummary.referral?.referral_count || 0)/5)*100)}%`, backgroundColor: "#d97706" }} />
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#78350f", marginTop: "0.4rem" }}>
+                    {dashboardSummary.referral?.module_b_unlocked ? "🎉 Unlocked! CRM & Supplier tools enabled." : `Share with ${Math.max(0, 5 - (dashboardSummary.referral?.referral_count || 0))} more friends to unlock ₹99 plan free!`}
+                  </div>
+                </div>
+
+                {/* 12 Referrals -> Module C */}
+                <div style={{ backgroundColor: "#fdf4ff", border: "1px solid #fae8ff", borderRadius: "12px", padding: "1rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+                    <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#86198f" }}>Module C (₹129 Enterprise)</span>
+                    <span style={{ fontSize: "0.78rem", fontWeight: 800, color: dashboardSummary.referral?.module_c_unlocked ? "#166534" : "#c026d3" }}>
+                      {dashboardSummary.referral?.module_c_unlocked ? "✓ UNLOCKED" : `${dashboardSummary.referral?.referral_count || 0}/12 Referrals`}
+                    </span>
+                  </div>
+                  <div className="referral-progress-bar">
+                    <div className="referral-progress-fill" style={{ width: `${Math.min(100, ((dashboardSummary.referral?.referral_count || 0)/12)*100)}%`, backgroundColor: "#c026d3" }} />
+                  </div>
+                  <div style={{ fontSize: "0.75rem", color: "#701a75", marginTop: "0.4rem" }}>
+                    {dashboardSummary.referral?.module_c_unlocked ? "🎉 Unlocked! Multi-warehouse & P&L enabled." : `Share with ${Math.max(0, 12 - (dashboardSummary.referral?.referral_count || 0))} more friends to unlock ₹129 plan free!`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Share Box */}
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", backgroundColor: "#FAF6F2", padding: "0.6rem 0.8rem", borderRadius: "10px", border: "1px solid #EFEBE6" }}>
+                <input 
+                  type="text" 
+                  readOnly 
+                  value={window.location.origin + "/?ref=" + (dashboardSummary.referral?.referral_code || "REF-CODE")} 
+                  style={{ flex: 1, border: "none", background: "transparent", fontSize: "0.82rem", fontWeight: 700, color: "#2D2522" }} 
+                />
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.origin + "/?ref=" + (dashboardSummary.referral?.referral_code || "REF-CODE"));
+                    alert("Referral link copied!");
+                  }}
+                  className="btn btn-secondary" 
+                  style={{ padding: "0.35rem 0.75rem", fontSize: "0.78rem", borderRadius: "6px" }}
+                >
+                  Copy Link
+                </button>
+                <a 
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent("Join GenSaas Kirana Management & claim ₹49 free starter bonus! Register with my link: " + window.location.origin + "/?ref=" + (dashboardSummary.referral?.referral_code || "REF-CODE"))}`}
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="btn btn-primary"
+                  style={{ padding: "0.35rem 0.75rem", fontSize: "0.78rem", borderRadius: "6px", backgroundColor: "#25D366", borderColor: "#25D366" }}
+                >
+                  Share WhatsApp
+                </a>
+              </div>
+            </div>
+
             {/* Wallet & Streak Summary Header Cards */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "2rem" }}>
               
               {/* Wallet Card */}
-              <div style={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Wallet Balance</span>
+              <div style={{ backgroundColor: "#FAF6F2", border: "1px solid #EFEBE6", borderRadius: "12px", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#7C726E", textTransform: "uppercase" }}>Wallet Balance</span>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-                  <span style={{ fontSize: "2rem", fontWeight: 800, color: "#4f46e5" }}>💰 {dashboardSummary.wallet.points_balance}</span>
-                  <span style={{ fontSize: "0.9rem", color: "#64748b" }}>Points (1 Pt = ₹1)</span>
+                  <span style={{ fontSize: "2rem", fontWeight: 800, color: "#E85A4F" }}>💰 {dashboardSummary.wallet.points_balance}</span>
+                  <span style={{ fontSize: "0.9rem", color: "#7C726E" }}>Points (1 Pt = ₹1)</span>
                 </div>
                 <div style={{ fontSize: "0.75rem", color: dashboardSummary.wallet.bonus_claimed ? "#166534" : "#991b1b", fontWeight: 600 }}>
                   {dashboardSummary.wallet.bonus_claimed ? "✓ 49 Signup Bonus Claimed" : "⚠️ Fraud Check: Bonus blocked (Existing record found)"}
@@ -5769,13 +5885,13 @@ export default function App() {
               </div>
 
               {/* Streak Card */}
-              <div style={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Daily Active Streak</span>
+              <div style={{ backgroundColor: "#FAF6F2", border: "1px solid #EFEBE6", borderRadius: "12px", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#7C726E", textTransform: "uppercase" }}>Daily Active Streak</span>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
                   <span style={{ fontSize: "2rem", fontWeight: 800, color: "#d97706" }}>🔥 {dashboardSummary.streak.current_streak}</span>
-                  <span style={{ fontSize: "0.9rem", color: "#64748b" }}>Consecutive Days</span>
+                  <span style={{ fontSize: "0.9rem", color: "#7C726E" }}>Consecutive Days</span>
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                <div style={{ fontSize: "0.75rem", color: "#7C726E" }}>
                   Longest Streak: <strong>{dashboardSummary.streak.longest_streak} Days</strong> | Missed day policy: Counter resets to 0
                 </div>
               </div>
@@ -5783,7 +5899,7 @@ export default function App() {
             </div>
 
             {/* Modules Pricing & Unlock Catalog */}
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#1e293b", marginBottom: "1rem" }}>Available SaaS Modules</h3>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#2D2522", marginBottom: "1rem" }}>Available SaaS Modules</h3>
             
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "2rem" }}>
               
@@ -5791,13 +5907,13 @@ export default function App() {
               {(() => {
                 const isUnlocked = dashboardSummary.unlocked_modules.some(m => m.module_id === "Module A");
                 return (
-                  <div style={{ border: "1px solid #cbd5e1", borderRadius: "14px", padding: "1.25rem", backgroundColor: isUnlocked ? "#f0fdf4" : "#FFFFFF", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  <div style={{ border: "1px solid #EFEBE6", borderRadius: "14px", padding: "1.25rem", backgroundColor: isUnlocked ? "#f0fdf4" : "#FFFFFF", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                         <h4 style={{ fontWeight: 800, fontSize: "1.1rem", margin: 0 }}>Module A</h4>
-                        <span style={{ backgroundColor: "#e0e7ff", color: "#4f46e5", padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 700 }}>₹49</span>
+                        <span style={{ backgroundColor: "#F3E8E2", color: "#E85A4F", padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 700 }}>₹49</span>
                       </div>
-                      <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "1rem" }}>
+                      <p style={{ fontSize: "0.8rem", color: "#7C726E", marginBottom: "1rem" }}>
                         Essential E-Commerce Storefront & Inventory Suite.
                       </p>
                       <div style={{ fontSize: "0.75rem", color: "#166534", backgroundColor: "#dcfce7", padding: "0.4rem 0.6rem", borderRadius: "6px", marginBottom: "1rem" }}>
@@ -5814,7 +5930,7 @@ export default function App() {
                         <button 
                           onClick={() => handleUnlockModule("Module A", "points")}
                           disabled={dashboardSummary.wallet.points_balance < 49}
-                          style={{ backgroundColor: "#4f46e5", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", opacity: dashboardSummary.wallet.points_balance < 49 ? 0.6 : 1 }}
+                          style={{ backgroundColor: "#E85A4F", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", opacity: dashboardSummary.wallet.points_balance < 49 ? 0.6 : 1 }}
                         >
                           Use 49 Signup Points
                         </button>
@@ -5837,13 +5953,13 @@ export default function App() {
                 const progressPct = Math.min(100, Math.round((streakDays / 90) * 100));
 
                 return (
-                  <div style={{ border: "1px solid #cbd5e1", borderRadius: "14px", padding: "1.25rem", backgroundColor: isUnlocked ? "#f0fdf4" : "#FFFFFF", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  <div style={{ border: "1px solid #EFEBE6", borderRadius: "14px", padding: "1.25rem", backgroundColor: isUnlocked ? "#f0fdf4" : "#FFFFFF", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                         <h4 style={{ fontWeight: 800, fontSize: "1.1rem", margin: 0 }}>Module B</h4>
                         <span style={{ backgroundColor: "#fef3c7", color: "#d97706", padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 700 }}>₹99</span>
                       </div>
-                      <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "1rem" }}>
+                      <p style={{ fontSize: "0.8rem", color: "#7C726E", marginBottom: "1rem" }}>
                         Advanced CRM, Staff Attendance & Supplier Ledger.
                       </p>
                       
@@ -5852,11 +5968,11 @@ export default function App() {
                       </div>
                       
                       <div style={{ marginBottom: "1rem" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "#64748b", marginBottom: "0.2rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "#7C726E", marginBottom: "0.2rem" }}>
                           <span>Streak Progress ({streakDays}/90 days)</span>
                           <span>{progressPct}%</span>
                         </div>
-                        <div style={{ height: "6px", backgroundColor: "#e2e8f0", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ height: "6px", backgroundColor: "#EFEBE6", borderRadius: "3px", overflow: "hidden" }}>
                           <div style={{ height: "100%", width: `${progressPct}%`, backgroundColor: "#d97706" }} />
                         </div>
                       </div>
@@ -5870,7 +5986,7 @@ export default function App() {
                       <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                         <button 
                           onClick={() => handleUnlockModule("Module B", "payment")}
-                          style={{ backgroundColor: "#4f46e5", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                          style={{ backgroundColor: "#E85A4F", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
                         >
                           Pay ₹99
                         </button>
@@ -5890,13 +6006,13 @@ export default function App() {
                 const progressPct = Math.min(100, Math.round((streakDays / 365) * 100));
 
                 return (
-                  <div style={{ border: "1px solid #cbd5e1", borderRadius: "14px", padding: "1.25rem", backgroundColor: isUnlocked ? "#f0fdf4" : "#FFFFFF", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  <div style={{ border: "1px solid #EFEBE6", borderRadius: "14px", padding: "1.25rem", backgroundColor: isUnlocked ? "#f0fdf4" : "#FFFFFF", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                         <h4 style={{ fontWeight: 800, fontSize: "1.1rem", margin: 0 }}>Module C</h4>
                         <span style={{ backgroundColor: "#fae8ff", color: "#c026d3", padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 700 }}>₹129</span>
                       </div>
-                      <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "1rem" }}>
+                      <p style={{ fontSize: "0.8rem", color: "#7C726E", marginBottom: "1rem" }}>
                         AI Sales Forecasting, Auto Procurement & Multi-Warehouse.
                       </p>
                       
@@ -5905,11 +6021,11 @@ export default function App() {
                       </div>
 
                       <div style={{ marginBottom: "1rem" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "#64748b", marginBottom: "0.2rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "#7C726E", marginBottom: "0.2rem" }}>
                           <span>Streak Progress ({streakDays}/365 days)</span>
                           <span>{progressPct}%</span>
                         </div>
-                        <div style={{ height: "6px", backgroundColor: "#e2e8f0", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ height: "6px", backgroundColor: "#EFEBE6", borderRadius: "3px", overflow: "hidden" }}>
                           <div style={{ height: "100%", width: `${progressPct}%`, backgroundColor: "#c026d3" }} />
                         </div>
                       </div>
@@ -5923,7 +6039,7 @@ export default function App() {
                       <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                         <button 
                           onClick={() => handleUnlockModule("Module C", "payment")}
-                          style={{ backgroundColor: "#4f46e5", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                          style={{ backgroundColor: "#E85A4F", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
                         >
                           Pay ₹129
                         </button>

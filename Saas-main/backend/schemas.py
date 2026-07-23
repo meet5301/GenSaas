@@ -416,6 +416,7 @@ class MobileSignupRequest(BaseModel):
     password: str
     otp_code: str
     name: Optional[str] = "Store Owner"
+    referral_code: Optional[str] = None
 
 class MobileLoginRequest(BaseModel):
     phone: str
@@ -436,6 +437,14 @@ class StreakResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ReferralStatsResponse(BaseModel):
+    referral_code: str
+    referral_count: int
+    referrals_needed_for_99: int
+    referrals_needed_for_129: int
+    module_b_unlocked: bool
+    module_c_unlocked: bool
 
 class ModuleUnlockRequest(BaseModel):
     module_id: str
@@ -462,6 +471,7 @@ class TransactionResponse(BaseModel):
 class DashboardSummaryResponse(BaseModel):
     wallet: WalletResponse
     streak: StreakResponse
+    referral: Optional[ReferralStatsResponse] = None
     unlocked_modules: List[ModuleAccessResponse]
     recent_transactions: List[TransactionResponse]
 

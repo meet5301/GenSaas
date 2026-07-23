@@ -136,6 +136,9 @@ class User(Base):
     role = Column(String, default="Customer")
     name = Column(String, nullable=True)
     bonus_claimed = Column(Boolean, default=False)
+    referral_code = Column(String, unique=True, index=True, nullable=True)
+    referred_by_code = Column(String, nullable=True)
+    referral_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 

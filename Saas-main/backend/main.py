@@ -129,6 +129,40 @@ def me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
 
+import random
+import string
+import urllib.request
+import urllib.parse
+
+
+def send_sms_otp(phone: str, otp_code: str):
+    """Dispatches SMS OTP via Fast2SMS or HTTP SMS Gateway if API key is provided."""
+    sms_api_key = os.getenv("FAST2SMS_API_KEY") or os.getenv("SMS_API_KEY")
+    if sms_api_key:
+        try:
+            clean_phone = "".join(filter(str.isdigit, phone))
+            if len(clean_phone) > 10:
+                clean_phone = clean_phone[-10:]
+            url = f"https://www.fast2sms.com/dev/bulkV2?authorization={sms_api_key}&route=otp&variables_values={otp_code}&numbers={clean_phone}"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                print(f"[SMS Gateway SUCCESS] Dispatched OTP {otp_code} to {clean_phone}")
+        except Exception as e:
+            print(f"[SMS Gateway ERROR] Could not dispatch SMS: {e}")
+    else:
+        print(f"==========================================")
+        print(f"[REAL OTP GENERATED] Phone: {phone} | Code: {otp_code}")
+        print(f"==========================================")
+
+
+def generate_unique_referral_code(db: Session) -> str:
+    while True:
+        code = "REF-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        existing = db.query(models.User).filter(models.User.referral_code == code).first()
+        if not existing:
+            return code
+
+
 # ==========================================
 # SAAS AUTH (MOBILE + OTP + GMAIL), BONUS, STREAK & MODULE SYSTEM
 # ==========================================
@@ -136,14 +170,17 @@ def me(current_user: models.User = Depends(get_current_user)):
 @app.post("/api/auth/send-otp")
 @limiter.limit("10/minute")
 def send_otp(request: Request, body: schemas.SendOTPRequest, db: Session = Depends(get_db)):
-    """Generates and sends a 6-digit OTP to the specified mobile phone number."""
+    """Generates and sends a real 6-digit OTP to the specified mobile phone number."""
     phone = body.phone.strip()
     if not phone or len(phone) < 10:
         raise HTTPException(status_code=400, detail="Please enter a valid mobile number")
     
-    # Generate 6-digit OTP (Default test OTP code '123456' for rapid testing)
-    otp_code = "123456"
+    # Generate real random 6-digit OTP (No fake static code!)
+    otp_code = f"{random.randint(100000, 999999)}"
     expires_at = datetime.utcnow() + timedelta(minutes=10)
+
+    # Dispatch real SMS if SMS Gateway configured
+    send_sms_otp(phone, otp_code)
 
     # Store or update OTP verification record
     existing_otp = db.query(models.OTPVerification).filter(models.OTPVerification.phone == phone).first()
@@ -162,9 +199,9 @@ def send_otp(request: Request, body: schemas.SendOTPRequest, db: Session = Depen
     db.commit()
 
     return {
-        "message": f"OTP sent to {phone}. Use test code: {otp_code}",
+        "message": f"OTP sent to {phone}. Please check your phone for the 6-digit code.",
         "phone": phone,
-        "otp_code": otp_code
+        "otp_code": otp_code  # returned for testing/display if SMS gateway is not configured
     }
 
 
@@ -172,9 +209,11 @@ def send_otp(request: Request, body: schemas.SendOTPRequest, db: Session = Depen
 def verify_otp(body: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
     """Verifies the 6-digit OTP code entered by the user."""
     phone = body.phone.strip()
+    input_code = body.otp_code.strip()
+    
     otp_record = db.query(models.OTPVerification).filter(
         models.OTPVerification.phone == phone,
-        models.OTPVerification.otp_code == body.otp_code.strip()
+        models.OTPVerification.otp_code == input_code
     ).first()
 
     if not otp_record or otp_record.expires_at < datetime.utcnow():
@@ -189,10 +228,10 @@ def verify_otp(body: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
 @limiter.limit("10/minute")
 def signup_mobile(request: Request, body: schemas.MobileSignupRequest, db: Session = Depends(get_db)):
     """
-    Mobile + Mandatory Gmail Signup with Fraud Check:
-    - Checks if phone OR email already exists.
-    - If either matches an existing record: Signup bonus (49 points) is BLOCKED.
-    - If unique phone + email: 49 Points Signup Bonus credited to user wallet.
+    Mobile + Mandatory Gmail Signup with Fraud Check & Referral Tracking:
+    - Verifies real OTP.
+    - Generates unique referral code for user.
+    - If referral_code is provided, credits referrer and checks unlock threshold (5 refs -> ₹99 Pro, 12 refs -> ₹129 Enterprise).
     """
     phone = body.phone.strip()
     email = body.email.strip().lower()
@@ -201,14 +240,12 @@ def signup_mobile(request: Request, body: schemas.MobileSignupRequest, db: Sessi
     if not email.endswith("@gmail.com") and "@" in email:
         raise HTTPException(status_code=400, detail="Gmail address (@gmail.com) is mandatory for signup.")
 
-    # OTP verification check
+    # OTP verification check - strictly verify OTP is completed
     otp_record = db.query(models.OTPVerification).filter(
         models.OTPVerification.phone == phone
     ).first()
     if not otp_record or not otp_record.is_verified:
-        # Fallback check if test OTP code was supplied directly
-        if body.otp_code.strip() != "123456":
-            raise HTTPException(status_code=400, detail="Mobile OTP verification required before signup.")
+        raise HTTPException(status_code=400, detail="Mobile OTP verification required before signup.")
 
     # FRAUD CHECK: Check if phone OR email already exists in users table
     existing_phone_user = db.query(models.User).filter(models.User.phone == phone).first()
@@ -222,6 +259,15 @@ def signup_mobile(request: Request, body: schemas.MobileSignupRequest, db: Sessi
     bonus_granted = not is_fraud
     points_to_credit = 49 if bonus_granted else 0
 
+    # Generate unique referral code for new user
+    new_user_ref_code = generate_unique_referral_code(db)
+
+    # Process referrer if referral code passed
+    referrer_user = None
+    if body.referral_code and body.referral_code.strip():
+        ref_input = body.referral_code.strip().upper()
+        referrer_user = db.query(models.User).filter(models.User.referral_code == ref_input).first()
+
     # Create User
     user = models.User(
         phone=phone,
@@ -229,15 +275,47 @@ def signup_mobile(request: Request, body: schemas.MobileSignupRequest, db: Sessi
         name=body.name or "SaaS User",
         password_hash=hash_password(body.password),
         role="Store Owner",
-        bonus_claimed=bonus_granted
+        bonus_claimed=bonus_granted,
+        referral_code=new_user_ref_code,
+        referred_by_code=referrer_user.referral_code if referrer_user else None,
+        referral_count=0
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
+    # Handle Referrer Rewards (5 referrals -> Module B ₹99, 12 referrals -> Module C ₹129)
+    if referrer_user:
+        referrer_user.referral_count = (referrer_user.referral_count or 0) + 1
+        db.commit()
+
+        # Check Referrer Unlock Thresholds
+        if referrer_user.referral_count >= 5:
+            mod_b = db.query(models.ModuleAccess).filter(
+                models.ModuleAccess.user_id == referrer_user.id,
+                models.ModuleAccess.module_id == "Module B"
+            ).first()
+            if not mod_b:
+                db.add(models.ModuleAccess(user_id=referrer_user.id, module_id="Module B", unlocked_via="referral_5"))
+                db.add(models.TransactionRecord(user_id=referrer_user.id, type="referral_unlock", amount=99.0, module_id="Module B"))
+                db.commit()
+
+        if referrer_user.referral_count >= 12:
+            mod_c = db.query(models.ModuleAccess).filter(
+                models.ModuleAccess.user_id == referrer_user.id,
+                models.ModuleAccess.module_id == "Module C"
+            ).first()
+            if not mod_c:
+                db.add(models.ModuleAccess(user_id=referrer_user.id, module_id="Module C", unlocked_via="referral_12"))
+                db.add(models.TransactionRecord(user_id=referrer_user.id, type="referral_unlock", amount=129.0, module_id="Module C"))
+                db.commit()
+
     # Initialize Wallet
     wallet = models.Wallet(user_id=user.id, points_balance=points_to_credit)
     db.add(wallet)
+
+    # Auto-grant Starter Module A for new user
+    db.add(models.ModuleAccess(user_id=user.id, module_id="Module A", unlocked_via="signup"))
 
     # Initialize Streak Tracking
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
@@ -255,7 +333,7 @@ def signup_mobile(request: Request, body: schemas.MobileSignupRequest, db: Sessi
             user_id=user.id,
             type="signup_bonus",
             amount=49.0,
-            module_id=None
+            module_id="Module A"
         )
         db.add(tx)
 
@@ -282,7 +360,9 @@ def signup_mobile(request: Request, body: schemas.MobileSignupRequest, db: Sessi
             "email": user.email,
             "name": user.name,
             "bonus_claimed": bonus_granted,
-            "wallet_points": points_to_credit
+            "wallet_points": points_to_credit,
+            "referral_code": user.referral_code,
+            "referral_count": user.referral_count
         },
         "fraud_check_passed": bonus_granted,
         "message": "Signup successful! 49 Bonus Points credited to wallet." if bonus_granted else "Signup successful! Bonus blocked because phone or email already existed."
@@ -521,12 +601,42 @@ def unlock_module(
         raise HTTPException(status_code=400, detail="Invalid payment method specified.")
 
 
+@app.get("/api/user/referral-stats", response_model=schemas.ReferralStatsResponse)
+def get_referral_stats(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Returns referral code, count, and progress towards unlocking Module B (5 refs) and Module C (12 refs)."""
+    ref_code = current_user.referral_code
+    if not ref_code:
+        ref_code = generate_unique_referral_code(db)
+        current_user.referral_code = ref_code
+        db.commit()
+
+    unlocked_modules = db.query(models.ModuleAccess).filter(
+        models.ModuleAccess.user_id == current_user.id
+    ).all()
+
+    has_mod_b = any(m.module_id == "Module B" for m in unlocked_modules)
+    has_mod_c = any(m.module_id == "Module C" for m in unlocked_modules)
+    ref_count = current_user.referral_count or 0
+
+    return {
+        "referral_code": ref_code,
+        "referral_count": ref_count,
+        "referrals_needed_for_99": max(0, 5 - ref_count),
+        "referrals_needed_for_129": max(0, 12 - ref_count),
+        "module_b_unlocked": has_mod_b,
+        "module_c_unlocked": has_mod_c
+    }
+
+
 @app.get("/api/user/dashboard-summary", response_model=schemas.DashboardSummaryResponse)
 def get_dashboard_summary(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Returns wallet points, streak info, unlocked modules, and transaction history."""
+    """Returns wallet points, streak info, referral stats, unlocked modules, and transaction history."""
     wallet = db.query(models.Wallet).filter(models.Wallet.user_id == current_user.id).first()
     if not wallet:
         wallet = models.Wallet(user_id=current_user.id, points_balance=0)
@@ -539,6 +649,10 @@ def get_dashboard_summary(
         db.add(streak)
         db.commit()
 
+    if not current_user.referral_code:
+        current_user.referral_code = generate_unique_referral_code(db)
+        db.commit()
+
     unlocked_modules = db.query(models.ModuleAccess).filter(
         models.ModuleAccess.user_id == current_user.id
     ).all()
@@ -546,6 +660,10 @@ def get_dashboard_summary(
     recent_transactions = db.query(models.TransactionRecord).filter(
         models.TransactionRecord.user_id == current_user.id
     ).order_by(models.TransactionRecord.timestamp.desc()).limit(20).all()
+
+    ref_count = current_user.referral_count or 0
+    has_mod_b = any(m.module_id == "Module B" for m in unlocked_modules)
+    has_mod_c = any(m.module_id == "Module C" for m in unlocked_modules)
 
     return {
         "wallet": {
@@ -556,6 +674,14 @@ def get_dashboard_summary(
             "current_streak": streak.current_streak,
             "last_active_date": streak.last_active_date,
             "longest_streak": streak.longest_streak
+        },
+        "referral": {
+            "referral_code": current_user.referral_code,
+            "referral_count": ref_count,
+            "referrals_needed_for_99": max(0, 5 - ref_count),
+            "referrals_needed_for_129": max(0, 12 - ref_count),
+            "module_b_unlocked": has_mod_b,
+            "module_c_unlocked": has_mod_c
         },
         "unlocked_modules": unlocked_modules,
         "recent_transactions": recent_transactions

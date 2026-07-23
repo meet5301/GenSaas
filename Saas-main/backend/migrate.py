@@ -50,7 +50,10 @@ def migrate():
             cursor.execute(f"ALTER TABLE stores ADD COLUMN {col_name} {col_type}")
             
     user_columns = [
-        ("bonus_claimed", "BOOLEAN DEFAULT 0")
+        ("bonus_claimed", "BOOLEAN DEFAULT 0"),
+        ("referral_code", "TEXT"),
+        ("referred_by_code", "TEXT"),
+        ("referral_count", "INTEGER DEFAULT 0")
     ]
     cursor.execute("PRAGMA table_info(users)")
     existing_users = [col[1] for col in cursor.fetchall()]
