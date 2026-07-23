@@ -22,8 +22,28 @@ from auth import (
 )
 from middleware import limiter, security_headers_middleware
 
-# Create DB tables
+# Create DB tables & ensure missing columns exist
 Base.metadata.create_all(bind=engine)
+
+def auto_migrate_db_schema():
+    from sqlalchemy import text
+    columns_to_add = [
+        ("bonus_claimed", "BOOLEAN DEFAULT FALSE"),
+        ("referral_code", "VARCHAR"),
+        ("referred_by_code", "VARCHAR"),
+        ("referral_count", "INTEGER DEFAULT 0"),
+    ]
+    try:
+        with engine.begin() as conn:
+            for col_name, col_type in columns_to_add:
+                try:
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type};"))
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"Auto-migration note: {e}")
+
+auto_migrate_db_schema()
 
 app = FastAPI(title="GenSaas API", description="AI voice-to-website generator for Modern Businesses & E-Commerce")
 

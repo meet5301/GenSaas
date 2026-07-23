@@ -504,6 +504,14 @@ export default function App() {
       localStorage.setItem("token", data.access_token);
       setToken(data.access_token);
       setCurrentUser(data.user);
+      if (data.user) {
+        setUserRole(data.user.role);
+        setIsOwnerVerified(true);
+        if (data.user.store_id) {
+          await loadStoreData(data.user.store_id, data.user.id, data.user.role);
+          setView("dashboard");
+        }
+      }
       setIsAuthModalOpen(false);
       setOtpStep("phone");
       setMobileAuthForm({ phone: "", email: "", password: "", otp_code: "", name: "", referral_code: "" });
@@ -521,8 +529,8 @@ export default function App() {
   // Mobile + Gmail Dual Login Handler
   const handleMobileLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mobileAuthForm.phone.trim() || !mobileAuthForm.email.trim()) {
-      alert("Both Mobile Phone Number AND Gmail address are mandatory for login.");
+    if (!mobileAuthForm.phone.trim() && !mobileAuthForm.email.trim()) {
+      alert("Please enter your Mobile Phone Number or Gmail address to log in.");
       return;
     }
     setOtpLoading(true);
@@ -549,11 +557,17 @@ export default function App() {
       if (meRes.ok) {
         const userData = await meRes.json();
         setCurrentUser(userData);
+        setUserRole(userData.role);
+        setIsOwnerVerified(true);
+        if (userData.store_id) {
+          await loadStoreData(userData.store_id, userData.id, userData.role);
+          setView("dashboard");
+        }
       }
       fetchDashboardSummary();
       pingUserStreak();
     } catch (err: any) {
-      alert(err.message || "Login failed. Please verify both Phone, Gmail, and Password.");
+      alert(err.message || "Login failed. Please verify Mobile/Gmail and Password.");
     } finally {
       setOtpLoading(false);
     }
@@ -1944,7 +1958,7 @@ export default function App() {
             ) : (
               <>
                 <button onClick={() => { setIsMobileNavOpen(false); setView("builder"); }} className="btn btn-secondary">
-                  Create New
+                  🏠 Home Page
                 </button>
                 <button 
                   onClick={() => {
