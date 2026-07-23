@@ -491,16 +491,21 @@ export default function App() {
     }
   };
 
-  // Mobile/Email Login Handler
+  // Mobile + Gmail Dual Login Handler
   const handleMobileLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!mobileAuthForm.phone.trim() || !mobileAuthForm.email.trim()) {
+      alert("Both Mobile Phone Number AND Gmail address are mandatory for login.");
+      return;
+    }
     setOtpLoading(true);
     try {
       const res = await fetch(`${BACKEND_URL}/api/auth/login-mobile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone_or_email: mobileAuthForm.phone || mobileAuthForm.email,
+          phone: mobileAuthForm.phone,
+          email: mobileAuthForm.email,
           password: mobileAuthForm.password
         })
       });
@@ -511,7 +516,6 @@ export default function App() {
       setToken(data.access_token);
       setIsAuthModalOpen(false);
       
-      // Fetch user info
       const meRes = await fetch(`${BACKEND_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${data.access_token}` }
       });
@@ -522,7 +526,7 @@ export default function App() {
       fetchDashboardSummary();
       pingUserStreak();
     } catch (err: any) {
-      alert(err.message || "Login failed. Check phone/email & password.");
+      alert(err.message || "Login failed. Please verify both Phone, Gmail, and Password.");
     } finally {
       setOtpLoading(false);
     }
@@ -5663,16 +5667,32 @@ export default function App() {
                 )}
               </div>
             ) : (
-              /* Login Form */
+              /* Login Form (Both Phone Number AND Gmail Required) */
               <form onSubmit={handleMobileLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <div style={{ backgroundColor: "#e0e7ff", border: "1px solid #c7d2fe", padding: "0.6rem 0.8rem", borderRadius: "8px", fontSize: "0.8rem", color: "#3730a3", fontWeight: 600 }}>
+                  🔒 Both Mobile Phone Number AND Gmail address are mandatory for login.
+                </div>
+
                 <div className="form-group">
-                  <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Mobile Number or Email Address *</label>
+                  <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Mobile Phone Number *</label>
                   <input 
-                    type="text" 
+                    type="tel" 
                     required 
-                    placeholder="Mobile number or email@gmail.com" 
-                    value={mobileAuthForm.phone || mobileAuthForm.email} 
-                    onChange={e => setMobileAuthForm({ ...mobileAuthForm, phone: e.target.value, email: e.target.value })} 
+                    placeholder="e.g. 9825098250" 
+                    value={mobileAuthForm.phone} 
+                    onChange={e => setMobileAuthForm({ ...mobileAuthForm, phone: e.target.value })} 
+                    style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1" }} 
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Gmail Address (@gmail.com) *</label>
+                  <input 
+                    type="email" 
+                    required 
+                    placeholder="e.g. suresh.patel@gmail.com" 
+                    value={mobileAuthForm.email} 
+                    onChange={e => setMobileAuthForm({ ...mobileAuthForm, email: e.target.value })} 
                     style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1" }} 
                   />
                 </div>

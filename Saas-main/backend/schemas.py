@@ -418,7 +418,8 @@ class MobileSignupRequest(BaseModel):
     name: Optional[str] = "Store Owner"
 
 class MobileLoginRequest(BaseModel):
-    phone_or_email: str
+    phone: str
+    email: str
     password: str
 
 class WalletResponse(BaseModel):

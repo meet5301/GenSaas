@@ -6,8 +6,8 @@
   --color-border: #EFEBE6;
   --color-text-dark: #2D2522;
   --color-text-muted: #7C726E;
-  --color-accent-pink: #F3E8E2;
-  --color-accent-red: #943f3f;
+  --color-accent-pink: #EEF2FF;
+  --color-accent-red: #4f46e5;
   --font-main: 'Outfit', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: 'Cormorant Garamond', serif;
   --radius-sm: 8px;
@@ -26,7 +26,7 @@
   --color-text-dark: #FAF6F2;
   --color-text-muted: #A39792;
   --color-accent-pink: #2C2421;
-  --color-accent-red: #E85A4F;
+  --color-accent-red: #6366f1;
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);

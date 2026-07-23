@@ -292,14 +292,19 @@ def signup_mobile(request: Request, body: schemas.MobileSignupRequest, db: Sessi
 @app.post("/api/auth/login-mobile", response_model=schemas.Token)
 @limiter.limit("20/minute")
 def login_mobile(request: Request, body: schemas.MobileLoginRequest, db: Session = Depends(get_db)):
-    """Log in via mobile phone number or email + password."""
-    target = body.phone_or_email.strip()
+    """Log in via BOTH mobile phone number AND Gmail address + password."""
+    phone_clean = body.phone.strip()
+    email_clean = body.email.strip().lower()
+
+    if not phone_clean or not email_clean:
+        raise HTTPException(status_code=400, detail="Both Mobile Phone Number and Gmail address are mandatory for login.")
+
     user = db.query(models.User).filter(
-        (models.User.phone == target) | (models.User.email == target.lower())
+        (models.User.phone == phone_clean) & (models.User.email == email_clean)
     ).first()
 
     if not user or not verify_password(body.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid phone/email or password.")
+        raise HTTPException(status_code=401, detail="Invalid Mobile Number, Gmail, or Password.")
 
     # Update streak on login
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
