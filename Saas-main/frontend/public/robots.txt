@@ -1,0 +1,17 @@
+# GenSaas SEO Robots.txt
+# Allow search engines to index all public content
+
+User-agent: *
+Allow: /
+Allow: /favicon.svg
+Allow: /icons.svg
+Allow: /site.webmanifest
+
+# Disallow private API endpoints & static assets internal paths
+Disallow: /api/
+Disallow: /admin/
+Disallow: /*?*query=
+
+# Host and Sitemap declaration
+Host: https://gensaas.com
+Sitemap: https://gensaas.com/sitemap.xml

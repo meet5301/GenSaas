@@ -12,7 +12,6 @@ def migrate():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # 1. Migrate products table columns
     product_columns = [
         ("barcode", "TEXT"),
         ("sku", "TEXT"),
@@ -30,7 +29,6 @@ def migrate():
             print(f"Adding column products.{col_name} ({col_type})")
             cursor.execute(f"ALTER TABLE products ADD COLUMN {col_name} {col_type}")
             
-    # 2. Migrate stores table columns
     store_columns = [
         ("theme_color", "TEXT DEFAULT '#E85A4F'"),
         ("secondary_color", "TEXT DEFAULT '#D8C3A5'"),
@@ -51,6 +49,16 @@ def migrate():
             print(f"Adding column stores.{col_name} ({col_type})")
             cursor.execute(f"ALTER TABLE stores ADD COLUMN {col_name} {col_type}")
             
+    user_columns = [
+        ("bonus_claimed", "BOOLEAN DEFAULT 0")
+    ]
+    cursor.execute("PRAGMA table_info(users)")
+    existing_users = [col[1] for col in cursor.fetchall()]
+    for col_name, col_type in user_columns:
+        if col_name not in existing_users:
+            print(f"Adding column users.{col_name} ({col_type})")
+            cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
+
     conn.commit()
     conn.close()
     print("Database migration checks complete.")

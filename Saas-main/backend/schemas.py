@@ -2,7 +2,6 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
-# --- Product Schemas ---
 class ProductBase(BaseModel):
     name: str
     category: str
@@ -48,7 +47,6 @@ class ProductResponse(ProductBase):
         from_attributes = True
 
 
-# --- Supplier Schemas ---
 class SupplierBase(BaseModel):
     name: str
     phone: Optional[str] = None
@@ -67,7 +65,6 @@ class SupplierResponse(SupplierBase):
         from_attributes = True
 
 
-# --- Employee Schemas ---
 EMPLOYEE_ROLES = {"Manager", "Cashier", "Stockboy", "Delivery", "Helper", "Accountant"}
 
 class EmployeeBase(BaseModel):
@@ -76,7 +73,7 @@ class EmployeeBase(BaseModel):
     phone: Optional[str] = None
     salary: Optional[float] = 0.0
     commission: Optional[float] = 0.0
-    joining_date: Optional[str] = None  # YYYY-MM-DD
+    joining_date: Optional[str] = None
 
 class EmployeeCreate(EmployeeBase):
     pass
@@ -97,7 +94,6 @@ class EmployeeResponse(EmployeeBase):
         from_attributes = True
 
 
-# --- Attendance Schemas ---
 class AttendanceBase(BaseModel):
     employee_id: int
     date: str
@@ -115,7 +111,6 @@ class AttendanceResponse(AttendanceBase):
         from_attributes = True
 
 
-# --- Store Schemas ---
 class StoreBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -165,7 +160,6 @@ class StoreResponse(StoreBase):
         from_attributes = True
 
 
-# --- Website Generation Request ---
 class GenerateRequest(BaseModel):
     prompt: str
     voice_input: bool = False
@@ -174,7 +168,6 @@ class GenerateRequest(BaseModel):
     selected_items: Optional[List[str]] = None
 
 
-# --- Sale Schemas ---
 class SaleBase(BaseModel):
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
@@ -195,7 +188,6 @@ class SaleResponse(SaleBase):
         from_attributes = True
 
 
-# --- User & Auth Schemas ---
 class UserBase(BaseModel):
     name: str
     email: str
@@ -231,7 +223,6 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
-# --- Category Schemas ---
 class CategoryBase(BaseModel):
     name: str
     image_url: Optional[str] = None
@@ -249,7 +240,6 @@ class CategoryResponse(CategoryBase):
         from_attributes = True
 
 
-# --- Order Schemas ---
 class OrderBase(BaseModel):
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
@@ -272,7 +262,6 @@ class OrderResponse(OrderBase):
         from_attributes = True
 
 
-# --- Warehouse Schemas ---
 class WarehouseBase(BaseModel):
     name: str
     location: Optional[str] = None
@@ -289,7 +278,6 @@ class WarehouseResponse(WarehouseBase):
         from_attributes = True
 
 
-# --- CashFlow Schemas ---
 class CashFlowBase(BaseModel):
     type: str
     amount: float
@@ -308,7 +296,6 @@ class CashFlowResponse(CashFlowBase):
         from_attributes = True
 
 
-# --- Customer / CRM Schemas ---
 class CustomerBase(BaseModel):
     name: str
     phone: Optional[str] = None
@@ -340,7 +327,6 @@ class CustomerResponse(CustomerBase):
         from_attributes = True
 
 
-# --- Return / Refund Schemas ---
 class ReturnBase(BaseModel):
     sale_id: Optional[int] = None
     customer_name: Optional[str] = None
@@ -362,7 +348,6 @@ class ReturnResponse(ReturnBase):
         from_attributes = True
 
 
-# --- Purchase Order Schemas ---
 class PurchaseOrderBase(BaseModel):
     supplier_id: Optional[int] = None
     supplier_name: Optional[str] = None
@@ -388,7 +373,6 @@ class PurchaseOrderResponse(PurchaseOrderBase):
         from_attributes = True
 
 
-# --- Expense Schemas ---
 EXPENSE_CATEGORIES = {"Salary", "Rent", "Utilities", "Purchase", "Maintenance", "Marketing", "Misc"}
 
 class ExpenseCreate(BaseModel):
@@ -406,7 +390,6 @@ class ExpenseResponse(ExpenseCreate):
         from_attributes = True
 
 
-# --- Notification Schemas ---
 class NotificationResponse(BaseModel):
     id: int
     store_id: int
@@ -418,3 +401,66 @@ class NotificationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SendOTPRequest(BaseModel):
+    phone: str
+
+class VerifyOTPRequest(BaseModel):
+    phone: str
+    otp_code: str
+
+class MobileSignupRequest(BaseModel):
+    phone: str
+    email: str
+    password: str
+    otp_code: str
+    name: Optional[str] = "Store Owner"
+
+class MobileLoginRequest(BaseModel):
+    phone_or_email: str
+    password: str
+
+class WalletResponse(BaseModel):
+    points_balance: int
+    bonus_claimed: bool
+
+    class Config:
+        from_attributes = True
+
+class StreakResponse(BaseModel):
+    current_streak: int
+    last_active_date: Optional[str] = None
+    longest_streak: int
+
+    class Config:
+        from_attributes = True
+
+class ModuleUnlockRequest(BaseModel):
+    module_id: str
+    payment_method: str
+
+class ModuleAccessResponse(BaseModel):
+    module_id: str
+    unlocked_via: str
+    unlocked_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class TransactionResponse(BaseModel):
+    id: int
+    type: str
+    amount: float
+    module_id: Optional[str] = None
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+class DashboardSummaryResponse(BaseModel):
+    wallet: WalletResponse
+    streak: StreakResponse
+    unlocked_modules: List[ModuleAccessResponse]
+    recent_transactions: List[TransactionResponse]
+

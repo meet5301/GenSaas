@@ -1,5 +1,4 @@
-﻿from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
@@ -58,7 +57,6 @@ def get_current_user(
 
 
 def require_role(*roles: str):
-    """Returns a dependency that enforces minimum role level."""
     def dependency(current_user: models.User = Depends(get_current_user)) -> models.User:
         if current_user.role not in roles and current_user.role != "Super Admin":
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
@@ -67,7 +65,6 @@ def require_role(*roles: str):
 
 
 def require_min_role(min_role: str):
-    """Returns a dependency that enforces a minimum role in the hierarchy."""
     min_index = ROLE_HIERARCHY.index(min_role) if min_role in ROLE_HIERARCHY else 0
     def dependency(current_user: models.User = Depends(get_current_user)) -> models.User:
         user_index = ROLE_HIERARCHY.index(current_user.role) if current_user.role in ROLE_HIERARCHY else -1

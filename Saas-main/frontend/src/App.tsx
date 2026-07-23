@@ -349,6 +349,217 @@ export default function App() {
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [authForm, setAuthForm] = useState({ email: "", password: "", name: "", phone: "", role: "Store Owner" });
 
+  // SaaS Mobile OTP Auth & Fraud-Checked Bonus States
+  const [mobileAuthForm, setMobileAuthForm] = useState({ phone: "", email: "", password: "", otp_code: "123456", name: "" });
+  const [otpStep, setOtpStep] = useState<"phone" | "otp" | "details">("phone");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpMessage, setOtpMessage] = useState<string | null>(null);
+
+  // SaaS Wallet, Streak & Module Dashboard States
+  const [isSaasModulesOpen, setIsSaasModulesOpen] = useState(false);
+  const [dashboardSummary, setDashboardSummary] = useState<{
+    wallet: { points_balance: number; bonus_claimed: boolean };
+    streak: { current_streak: number; last_active_date: string | null; longest_streak: number };
+    unlocked_modules: Array<{ module_id: string; unlocked_via: string; unlocked_at: string }>;
+    recent_transactions: Array<{ id: number; type: string; amount: number; module_id?: string; timestamp: string }>;
+  }>({
+    wallet: { points_balance: 0, bonus_claimed: false },
+    streak: { current_streak: 0, last_active_date: null, longest_streak: 0 },
+    unlocked_modules: [],
+    recent_transactions: []
+  });
+
+  // Fetch Dashboard Summary (Wallet points, Streak, Unlocked Modules, Transactions)
+  const fetchDashboardSummary = async () => {
+    const storedToken = localStorage.getItem("token");
+    if (!storedToken) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/user/dashboard-summary`, {
+        headers: { Authorization: `Bearer ${storedToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDashboardSummary(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch SaaS dashboard summary:", e);
+    }
+  };
+
+  // Trigger daily streak ping
+  const pingUserStreak = async () => {
+    const storedToken = localStorage.getItem("token");
+    if (!storedToken) return;
+    try {
+      await fetch(`${BACKEND_URL}/api/user/ping-streak`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${storedToken}` }
+      });
+      fetchDashboardSummary();
+    } catch (e) {
+      console.error("Streak ping failed:", e);
+    }
+  };
+
+  // Send OTP handler
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mobileAuthForm.phone || mobileAuthForm.phone.length < 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: mobileAuthForm.phone })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Failed to send OTP.");
+      setOtpStep("otp");
+      setOtpMessage(data.message);
+    } catch (err: any) {
+      alert(err.message || "Error sending OTP.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Verify OTP handler
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mobileAuthForm.otp_code) {
+      alert("Please enter the 6-digit OTP code.");
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: mobileAuthForm.phone, otp_code: mobileAuthForm.otp_code })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Invalid OTP code.");
+      setOtpStep("details");
+      setOtpMessage("Mobile number verified successfully! Complete details below.");
+    } catch (err: any) {
+      alert(err.message || "Error verifying OTP.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Mobile + Gmail Signup Handler with Fraud Check
+  const handleMobileSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mobileAuthForm.email.toLowerCase().endsWith("@gmail.com")) {
+      alert("Gmail address (@gmail.com) is mandatory at signup.");
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/signup-mobile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: mobileAuthForm.phone,
+          email: mobileAuthForm.email,
+          password: mobileAuthForm.password,
+          otp_code: mobileAuthForm.otp_code,
+          name: mobileAuthForm.name || "Store Owner"
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Signup failed.");
+      
+      localStorage.setItem("token", data.access_token);
+      setToken(data.access_token);
+      setCurrentUser(data.user);
+      setIsAuthModalOpen(false);
+      setOtpStep("phone");
+      setMobileAuthForm({ phone: "", email: "", password: "", otp_code: "123456", name: "" });
+      
+      alert(data.message);
+      fetchDashboardSummary();
+      pingUserStreak();
+    } catch (err: any) {
+      alert(err.message || "Signup failed.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Mobile/Email Login Handler
+  const handleMobileLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpLoading(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/login-mobile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone_or_email: mobileAuthForm.phone || mobileAuthForm.email,
+          password: mobileAuthForm.password
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Login failed.");
+      
+      localStorage.setItem("token", data.access_token);
+      setToken(data.access_token);
+      setIsAuthModalOpen(false);
+      
+      // Fetch user info
+      const meRes = await fetch(`${BACKEND_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${data.access_token}` }
+      });
+      if (meRes.ok) {
+        const userData = await meRes.json();
+        setCurrentUser(userData);
+      }
+      fetchDashboardSummary();
+      pingUserStreak();
+    } catch (err: any) {
+      alert(err.message || "Login failed. Check phone/email & password.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Unlock SaaS Module Handler
+  const handleUnlockModule = async (moduleId: string, paymentMethod: "payment" | "points") => {
+    const storedToken = localStorage.getItem("token");
+    if (!storedToken) {
+      alert("Please login first to unlock modules.");
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    if (paymentMethod === "points" && moduleId !== "Module A") {
+      alert(`Redemption Policy Error: The 49 signup points can ONLY be used for Module A. Points cannot be applied to ${moduleId}.`);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/modules/unlock`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${storedToken}`
+        },
+        body: JSON.stringify({ module_id: moduleId, payment_method: paymentMethod })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Module unlock failed.");
+      alert(data.message);
+      fetchDashboardSummary();
+    } catch (err: any) {
+      alert(err.message || "Failed to unlock module.");
+    }
+  };
+
   const [lang, setLang] = useState<"en" | "hi" | "gu">("en");
   const [isDarkMode] = useState(false);
 
@@ -592,6 +803,8 @@ export default function App() {
         setUserRole(userData.role);
         setIsOwnerVerified(true);
         if (userData.store_id) await loadStoreData(userData.store_id, userData.id, userData.role);
+        fetchDashboardSummary();
+        pingUserStreak();
       } catch (e) {
         console.error("Session restoration failed:", e);
       }
@@ -1569,6 +1782,60 @@ export default function App() {
             icon={<Languages size={15} style={{ color: "var(--color-text-muted)" }} />}
           />
 
+          {/* SaaS Wallet & Streak Badges */}
+          {currentUser && (
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }} className="no-print">
+              <button 
+                onClick={() => setIsSaasModulesOpen(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.3rem",
+                  backgroundColor: "rgba(79, 70, 229, 0.1)",
+                  color: "#4f46e5",
+                  border: "1px solid rgba(79, 70, 229, 0.3)",
+                  padding: "0.3rem 0.75rem",
+                  borderRadius: "20px",
+                  fontSize: "0.82rem",
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                💰 {dashboardSummary.wallet.points_balance} Pts
+              </button>
+              <button 
+                onClick={() => setIsSaasModulesOpen(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.3rem",
+                  backgroundColor: "rgba(245, 158, 11, 0.1)",
+                  color: "#d97706",
+                  border: "1px solid rgba(245, 158, 11, 0.3)",
+                  padding: "0.3rem 0.75rem",
+                  borderRadius: "20px",
+                  fontSize: "0.82rem",
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                🔥 {dashboardSummary.streak.current_streak}d Streak
+              </button>
+              <button 
+                onClick={() => setIsSaasModulesOpen(true)}
+                className="btn btn-primary"
+                style={{
+                  padding: "0.3rem 0.75rem",
+                  fontSize: "0.78rem",
+                  borderRadius: "20px",
+                  backgroundColor: "#4f46e5"
+                }}
+              >
+                📦 SaaS Modules
+              </button>
+            </div>
+          )}
+
           {/* Auth Trigger Button */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }} className="no-print">
             {currentUser ? (
@@ -1577,7 +1844,7 @@ export default function App() {
                 <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: "0.3rem 0.6rem", fontSize: "0.78rem", borderRadius: "12px" }}>Logout</button>
               </div>
             ) : (
-              <button onClick={() => { setIsAuthModalOpen(true); setAuthMode("login"); }} className="btn btn-secondary" style={{ padding: "0.3rem 0.6rem", fontSize: "0.78rem", borderRadius: "12px" }}>
+              <button onClick={() => { setIsAuthModalOpen(true); setAuthMode("login"); setOtpStep("phone"); }} className="btn btn-secondary" style={{ padding: "0.3rem 0.6rem", fontSize: "0.78rem", borderRadius: "12px" }}>
                 Login / Signup
               </button>
             )}
@@ -5268,77 +5535,420 @@ export default function App() {
       )}
 
 
-      {/* Authentication Modal */}
+      {/* Authentication Modal (Mobile + OTP + Gmail + Fraud Check) */}
       {isAuthModalOpen && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-          <div style={{ backgroundColor: "#FFFFFF", borderRadius: "16px", maxWidth: "400px", width: "100%", padding: "2rem", boxShadow: "var(--shadow-lg)" }}>
-            <h3 style={{ textAlign: "center", fontWeight: 800, fontSize: "1.5rem", marginBottom: "1.5rem" }}>
-              {authMode === "login" ? "Login to GenSaas" : "Create Store Owner Account"}
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", maxWidth: "440px", width: "100%", padding: "2rem", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)" }}>
+            <h3 style={{ textAlign: "center", fontWeight: 800, fontSize: "1.5rem", marginBottom: "0.5rem", color: "#1e293b" }}>
+              {authMode === "login" ? "Login to GenSaas" : "Create Store Account"}
             </h3>
-            
-            <form onSubmit={handleAuthSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              {authMode === "signup" && (
-                <>
-                  <div className="form-group">
-                    <label>Full Name</label>
-                    <input type="text" required placeholder="e.g. Suresh Patel" value={authForm.name} onChange={e => setAuthForm({ ...authForm, name: e.target.value })} style={{ padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
+            <p style={{ textAlign: "center", fontSize: "0.82rem", color: "#64748b", marginBottom: "1.5rem" }}>
+              {authMode === "login" ? "Enter your mobile phone or Gmail address" : "Sign up with Mobile + OTP & Gmail to claim 49 Bonus Points!"}
+            </p>
+
+            {authMode === "signup" ? (
+              <div>
+                {/* OTP Step Progress Header */}
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem", position: "relative" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#4f46e5", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>1</span>
+                    <span style={{ fontSize: "0.8rem", fontWeight: otpStep === "phone" ? "bold" : "normal" }}>Phone</span>
                   </div>
-                  <div className="form-group">
-                    <label>Phone Number</label>
-                    <input type="text" placeholder="e.g. 9825098250" value={authForm.phone} onChange={e => setAuthForm({ ...authForm, phone: e.target.value })} style={{ padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: otpStep === "otp" || otpStep === "details" ? "#4f46e5" : "#e2e8f0", color: otpStep === "otp" || otpStep === "details" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>2</span>
+                    <span style={{ fontSize: "0.8rem", fontWeight: otpStep === "otp" ? "bold" : "normal" }}>OTP</span>
                   </div>
-                  <div className="form-group">
-                    <label>Assigned Role</label>
-                    <CustomDropdown
-                      value={authForm.role}
-                      onChange={val => setAuthForm({ ...authForm, role: val })}
-                      options={[
-                        { value: "Store Owner", label: "Store Owner" },
-                        { value: "Cashier", label: "Cashier" }
-                      ]}
-                      className="premium-select"
-                      style={{ border: "1px solid var(--color-border)", borderRadius: "8px", padding: "0.6rem 0.95rem" }}
-                      selectStyle={{ paddingRight: "1.5rem" }}
-                    />
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: otpStep === "details" ? "#4f46e5" : "#e2e8f0", color: otpStep === "details" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold" }}>3</span>
+                    <span style={{ fontSize: "0.8rem", fontWeight: otpStep === "details" ? "bold" : "normal" }}>Gmail & Set</span>
                   </div>
-                </>
-              )}
-              
-              <div className="form-group">
-                <label>Email Address</label>
-                <input type="email" required placeholder="e.g. name@gensaas.com" value={authForm.email} onChange={e => setAuthForm({ ...authForm, email: e.target.value })} style={{ padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
+                </div>
+
+                {/* Step 1: Mobile Phone Number */}
+                {otpStep === "phone" && (
+                  <form onSubmit={handleSendOtp} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <div className="form-group">
+                      <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Mobile Phone Number *</label>
+                      <input 
+                        type="tel" 
+                        required 
+                        placeholder="e.g. 9825098250" 
+                        value={mobileAuthForm.phone} 
+                        onChange={e => setMobileAuthForm({ ...mobileAuthForm, phone: e.target.value })} 
+                        style={{ padding: "0.6rem5 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1" }} 
+                      />
+                    </div>
+                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#4f46e5", fontWeight: 700 }}>
+                      {otpLoading ? "Sending OTP..." : "Send 6-Digit OTP"}
+                    </button>
+                  </form>
+                )}
+
+                {/* Step 2: 6-Digit OTP Verification */}
+                {otpStep === "otp" && (
+                  <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <div style={{ backgroundColor: "#eff6ff", border: "1px solid #bfdbfe", padding: "0.75rem", borderRadius: "8px", fontSize: "0.82rem", color: "#1e40af" }}>
+                      {otpMessage || `OTP code sent to ${mobileAuthForm.phone}. (Test code: 123456)`}
+                    </div>
+                    <div className="form-group">
+                      <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Enter 6-Digit OTP Code *</label>
+                      <input 
+                        type="text" 
+                        required 
+                        placeholder="e.g. 123456" 
+                        value={mobileAuthForm.otp_code} 
+                        onChange={e => setMobileAuthForm({ ...mobileAuthForm, otp_code: e.target.value })} 
+                        style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1", letterSpacing: "2px", fontWeight: "bold" }} 
+                      />
+                    </div>
+                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#4f46e5", fontWeight: 700 }}>
+                      {otpLoading ? "Verifying..." : "Verify OTP Code"}
+                    </button>
+                    <button type="button" onClick={() => setOtpStep("phone")} style={{ background: "none", border: "none", color: "#64748b", fontSize: "0.8rem", cursor: "pointer" }}>
+                      ← Change Phone Number
+                    </button>
+                  </form>
+                )}
+
+                {/* Step 3: Mandatory Gmail, Password & Bonus Claim */}
+                {otpStep === "details" && (
+                  <form onSubmit={handleMobileSignup} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <div style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "0.75rem", borderRadius: "8px", fontSize: "0.82rem", color: "#166534" }}>
+                      ✓ Mobile Number ({mobileAuthForm.phone}) verified via OTP!
+                    </div>
+
+                    <div className="form-group">
+                      <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Full Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Suresh Patel" 
+                        value={mobileAuthForm.name} 
+                        onChange={e => setMobileAuthForm({ ...mobileAuthForm, name: e.target.value })} 
+                        style={{ padding: "0.6rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1" }} 
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Mandatory Gmail Address (@gmail.com) *</label>
+                      <input 
+                        type="email" 
+                        required 
+                        placeholder="e.g. suresh.patel@gmail.com" 
+                        value={mobileAuthForm.email} 
+                        onChange={e => setMobileAuthForm({ ...mobileAuthForm, email: e.target.value })} 
+                        style={{ padding: "0.6rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1" }} 
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Set Account Password *</label>
+                      <input 
+                        type="password" 
+                        required 
+                        placeholder="••••••••" 
+                        value={mobileAuthForm.password} 
+                        onChange={e => setMobileAuthForm({ ...mobileAuthForm, password: e.target.value })} 
+                        style={{ padding: "0.6rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1" }} 
+                      />
+                    </div>
+
+                    <div style={{ backgroundColor: "#fef3c7", border: "1px solid #fde68a", padding: "0.75rem", borderRadius: "8px", fontSize: "0.78rem", color: "#92400e" }}>
+                      🛡️ <strong>Fraud Check Rule:</strong> First-time unique phone + email gets <strong>49 Bonus Points (₹49 value)</strong> credited to wallet. If phone or email exists, bonus will be blocked.
+                    </div>
+
+                    <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", borderRadius: "50px", backgroundColor: "#4f46e5", fontWeight: 700 }}>
+                      {otpLoading ? "Creating Account..." : "Complete Signup & Claim 49 Points Bonus"}
+                    </button>
+                  </form>
+                )}
               </div>
-              
-              <div className="form-group">
-                <label>Password</label>
-                <input type="password" required placeholder="••••••••" value={authForm.password} onChange={e => setAuthForm({ ...authForm, password: e.target.value })} style={{ padding: "0.5rem", borderRadius: "6px", border: "1px solid var(--color-border)" }} />
-              </div>
-              
-              <button type="submit" className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", marginTop: "0.5rem", borderRadius: "50px", backgroundColor: "var(--color-accent-red)" }}>
-                {authMode === "login" ? "Login" : "Sign Up"}
-              </button>
-            </form>
-            
+            ) : (
+              /* Login Form */
+              <form onSubmit={handleMobileLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <div className="form-group">
+                  <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Mobile Number or Email Address *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Mobile number or email@gmail.com" 
+                    value={mobileAuthForm.phone || mobileAuthForm.email} 
+                    onChange={e => setMobileAuthForm({ ...mobileAuthForm, phone: e.target.value, email: e.target.value })} 
+                    style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1" }} 
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Password *</label>
+                  <input 
+                    type="password" 
+                    required 
+                    placeholder="••••••••" 
+                    value={mobileAuthForm.password} 
+                    onChange={e => setMobileAuthForm({ ...mobileAuthForm, password: e.target.value })} 
+                    style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1" }} 
+                  />
+                </div>
+
+                <button type="submit" disabled={otpLoading} className="btn btn-primary" style={{ justifyContent: "center", padding: "0.75rem", marginTop: "0.5rem", borderRadius: "50px", backgroundColor: "#4f46e5", fontWeight: 700 }}>
+                  {otpLoading ? "Logging in..." : "Login"}
+                </button>
+              </form>
+            )}
+
             <div style={{ textAlign: "center", marginTop: "1.25rem", fontSize: "0.85rem" }}>
               {authMode === "login" ? (
                 <span>
                   Don't have an account?{" "}
-                  <button onClick={() => setAuthMode("signup")} style={{ border: "none", background: "none", color: "var(--color-accent-red)", fontWeight: 700, cursor: "pointer" }}>
-                    Sign Up
+                  <button onClick={() => { setAuthMode("signup"); setOtpStep("phone"); }} style={{ border: "none", background: "none", color: "#4f46e5", fontWeight: 700, cursor: "pointer" }}>
+                    Sign Up via OTP
                   </button>
                 </span>
               ) : (
                 <span>
                   Already have an account?{" "}
-                  <button onClick={() => setAuthMode("login")} style={{ border: "none", background: "none", color: "var(--color-accent-red)", fontWeight: 700, cursor: "pointer" }}>
+                  <button onClick={() => setAuthMode("login")} style={{ border: "none", background: "none", color: "#4f46e5", fontWeight: 700, cursor: "pointer" }}>
                     Login
                   </button>
                 </span>
               )}
             </div>
-            
-            <button onClick={() => setIsAuthModalOpen(false)} style={{ display: "block", margin: "1rem auto 0 auto", border: "none", background: "none", color: "var(--color-text-muted)", fontSize: "0.82rem", cursor: "pointer" }}>
+
+            <button onClick={() => setIsAuthModalOpen(false)} style={{ display: "block", margin: "1rem auto 0 auto", border: "none", background: "none", color: "#64748b", fontSize: "0.82rem", cursor: "pointer" }}>
               Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* SaaS Modules & Wallet Dashboard Modal */}
+      {isSaasModulesOpen && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", overflowY: "auto" }}>
+          <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", maxWidth: "800px", width: "100%", padding: "2rem", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)", maxHeight: "90vh", overflowY: "auto" }}>
+            
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "1rem", marginBottom: "1.5rem" }}>
+              <div>
+                <h2 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#1e293b", margin: 0 }}>SaaS Modules & Wallet Center</h2>
+                <p style={{ fontSize: "0.85rem", color: "#64748b", margin: "0.25rem 0 0 0" }}>Manage your wallet points, daily active streaks, and tier unlocks</p>
+              </div>
+              <button onClick={() => setIsSaasModulesOpen(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>×</button>
+            </div>
+
+            {/* Wallet & Streak Summary Header Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "2rem" }}>
+              
+              {/* Wallet Card */}
+              <div style={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Wallet Balance</span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+                  <span style={{ fontSize: "2rem", fontWeight: 800, color: "#4f46e5" }}>💰 {dashboardSummary.wallet.points_balance}</span>
+                  <span style={{ fontSize: "0.9rem", color: "#64748b" }}>Points (1 Pt = ₹1)</span>
+                </div>
+                <div style={{ fontSize: "0.75rem", color: dashboardSummary.wallet.bonus_claimed ? "#166534" : "#991b1b", fontWeight: 600 }}>
+                  {dashboardSummary.wallet.bonus_claimed ? "✓ 49 Signup Bonus Claimed" : "⚠️ Fraud Check: Bonus blocked (Existing record found)"}
+                </div>
+              </div>
+
+              {/* Streak Card */}
+              <div style={{ backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Daily Active Streak</span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+                  <span style={{ fontSize: "2rem", fontWeight: 800, color: "#d97706" }}>🔥 {dashboardSummary.streak.current_streak}</span>
+                  <span style={{ fontSize: "0.9rem", color: "#64748b" }}>Consecutive Days</span>
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                  Longest Streak: <strong>{dashboardSummary.streak.longest_streak} Days</strong> | Missed day policy: Counter resets to 0
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modules Pricing & Unlock Catalog */}
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#1e293b", marginBottom: "1rem" }}>Available SaaS Modules</h3>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginBottom: "2rem" }}>
+              
+              {/* Module A */}
+              {(() => {
+                const isUnlocked = dashboardSummary.unlocked_modules.some(m => m.module_id === "Module A");
+                return (
+                  <div style={{ border: "1px solid #cbd5e1", borderRadius: "14px", padding: "1.25rem", backgroundColor: isUnlocked ? "#f0fdf4" : "#FFFFFF", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                        <h4 style={{ fontWeight: 800, fontSize: "1.1rem", margin: 0 }}>Module A</h4>
+                        <span style={{ backgroundColor: "#e0e7ff", color: "#4f46e5", padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 700 }}>₹49</span>
+                      </div>
+                      <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "1rem" }}>
+                        Essential E-Commerce Storefront & Inventory Suite.
+                      </p>
+                      <div style={{ fontSize: "0.75rem", color: "#166534", backgroundColor: "#dcfce7", padding: "0.4rem 0.6rem", borderRadius: "6px", marginBottom: "1rem" }}>
+                        ✓ Unlockable with 49 Signup Points or Direct Payment ₹49.
+                      </div>
+                    </div>
+
+                    {isUnlocked ? (
+                      <span style={{ textAlign: "center", backgroundColor: "#bbf7d0", color: "#166534", padding: "0.5rem", borderRadius: "20px", fontSize: "0.8rem", fontWeight: 700 }}>
+                        ✓ Unlocked
+                      </span>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                        <button 
+                          onClick={() => handleUnlockModule("Module A", "points")}
+                          disabled={dashboardSummary.wallet.points_balance < 49}
+                          style={{ backgroundColor: "#4f46e5", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", opacity: dashboardSummary.wallet.points_balance < 49 ? 0.6 : 1 }}
+                        >
+                          Use 49 Signup Points
+                        </button>
+                        <button 
+                          onClick={() => handleUnlockModule("Module A", "payment")}
+                          style={{ backgroundColor: "#f1f5f9", color: "#334155", border: "1px solid #cbd5e1", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                        >
+                          Pay ₹49
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Module B */}
+              {(() => {
+                const isUnlocked = dashboardSummary.unlocked_modules.some(m => m.module_id === "Module B");
+                const streakDays = dashboardSummary.streak.current_streak;
+                const progressPct = Math.min(100, Math.round((streakDays / 90) * 100));
+
+                return (
+                  <div style={{ border: "1px solid #cbd5e1", borderRadius: "14px", padding: "1.25rem", backgroundColor: isUnlocked ? "#f0fdf4" : "#FFFFFF", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                        <h4 style={{ fontWeight: 800, fontSize: "1.1rem", margin: 0 }}>Module B</h4>
+                        <span style={{ backgroundColor: "#fef3c7", color: "#d97706", padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 700 }}>₹99</span>
+                      </div>
+                      <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "1rem" }}>
+                        Advanced CRM, Staff Attendance & Supplier Ledger.
+                      </p>
+                      
+                      <div style={{ fontSize: "0.75rem", color: "#92400e", backgroundColor: "#fffbeb", padding: "0.4rem 0.6rem", borderRadius: "6px", marginBottom: "0.5rem" }}>
+                        🔥 Auto-unlock via 90-Day Unbroken Streak or Direct Payment ₹99.
+                      </div>
+                      
+                      <div style={{ marginBottom: "1rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "#64748b", marginBottom: "0.2rem" }}>
+                          <span>Streak Progress ({streakDays}/90 days)</span>
+                          <span>{progressPct}%</span>
+                        </div>
+                        <div style={{ height: "6px", backgroundColor: "#e2e8f0", borderRadius: "3px", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${progressPct}%`, backgroundColor: "#d97706" }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {isUnlocked ? (
+                      <span style={{ textAlign: "center", backgroundColor: "#bbf7d0", color: "#166534", padding: "0.5rem", borderRadius: "20px", fontSize: "0.8rem", fontWeight: 700 }}>
+                        ✓ Unlocked
+                      </span>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                        <button 
+                          onClick={() => handleUnlockModule("Module B", "payment")}
+                          style={{ backgroundColor: "#4f46e5", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                        >
+                          Pay ₹99
+                        </button>
+                        <span style={{ fontSize: "0.72rem", color: "#991b1b", textAlign: "center" }}>
+                          🚫 Signup points cannot be used for Module B
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Module C */}
+              {(() => {
+                const isUnlocked = dashboardSummary.unlocked_modules.some(m => m.module_id === "Module C");
+                const streakDays = dashboardSummary.streak.current_streak;
+                const progressPct = Math.min(100, Math.round((streakDays / 365) * 100));
+
+                return (
+                  <div style={{ border: "1px solid #cbd5e1", borderRadius: "14px", padding: "1.25rem", backgroundColor: isUnlocked ? "#f0fdf4" : "#FFFFFF", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                        <h4 style={{ fontWeight: 800, fontSize: "1.1rem", margin: 0 }}>Module C</h4>
+                        <span style={{ backgroundColor: "#fae8ff", color: "#c026d3", padding: "0.2rem 0.5rem", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 700 }}>₹129</span>
+                      </div>
+                      <p style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "1rem" }}>
+                        AI Sales Forecasting, Auto Procurement & Multi-Warehouse.
+                      </p>
+                      
+                      <div style={{ fontSize: "0.75rem", color: "#86198f", backgroundColor: "#fdf4ff", padding: "0.4rem 0.6rem", borderRadius: "6px", marginBottom: "0.5rem" }}>
+                        👑 Auto-unlock via 1-Year (365 Days) Streak or Direct Payment ₹129.
+                      </div>
+
+                      <div style={{ marginBottom: "1rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "#64748b", marginBottom: "0.2rem" }}>
+                          <span>Streak Progress ({streakDays}/365 days)</span>
+                          <span>{progressPct}%</span>
+                        </div>
+                        <div style={{ height: "6px", backgroundColor: "#e2e8f0", borderRadius: "3px", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${progressPct}%`, backgroundColor: "#c026d3" }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {isUnlocked ? (
+                      <span style={{ textAlign: "center", backgroundColor: "#bbf7d0", color: "#166534", padding: "0.5rem", borderRadius: "20px", fontSize: "0.8rem", fontWeight: 700 }}>
+                        ✓ Unlocked
+                      </span>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                        <button 
+                          onClick={() => handleUnlockModule("Module C", "payment")}
+                          style={{ backgroundColor: "#4f46e5", color: "white", border: "none", padding: "0.5rem", borderRadius: "20px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                        >
+                          Pay ₹129
+                        </button>
+                        <span style={{ fontSize: "0.72rem", color: "#991b1b", textAlign: "center" }}>
+                          🚫 Signup points cannot be used for Module C
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+            </div>
+
+            {/* Recent Transaction History */}
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#1e293b", marginBottom: "1rem" }}>Transaction & Reward Activity</h3>
+            {dashboardSummary.recent_transactions.length === 0 ? (
+              <p style={{ fontSize: "0.85rem", color: "#64748b", fontStyle: "italic" }}>No transactions logged yet.</p>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #e2e8f0", textAlign: "left", color: "#64748b" }}>
+                    <th style={{ padding: "0.5rem" }}>Type</th>
+                    <th>Module</th>
+                    <th>Amount / Points</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dashboardSummary.recent_transactions.map(tx => (
+                    <tr key={tx.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "0.5rem", textTransform: "capitalize", fontWeight: 600 }}>{tx.type.replace("_", " ")}</td>
+                      <td>{tx.module_id || "N/A"}</td>
+                      <td style={{ fontWeight: 700, color: tx.type === "signup_bonus" || tx.type === "loyalty_reward" ? "#166534" : "#1e293b" }}>
+                        {tx.type === "signup_bonus" ? "+49 Pts" : tx.type === "loyalty_reward" ? "+1 Pt" : `₹${tx.amount}`}
+                      </td>
+                      <td style={{ color: "#64748b" }}>{new Date(tx.timestamp).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            <button onClick={() => setIsSaasModulesOpen(false)} className="btn btn-secondary" style={{ display: "block", margin: "1.5rem auto 0 auto", borderRadius: "50px", padding: "0.5rem 2rem" }}>
+              Close Center
             </button>
           </div>
         </div>
