@@ -392,19 +392,24 @@ def signup_mobile(request: Request, body: schemas.MobileSignupRequest, db: Sessi
 @app.post("/api/auth/login-mobile", response_model=schemas.Token)
 @limiter.limit("20/minute")
 def login_mobile(request: Request, body: schemas.MobileLoginRequest, db: Session = Depends(get_db)):
-    """Log in via BOTH mobile phone number AND Gmail address + password."""
-    phone_clean = body.phone.strip()
-    email_clean = body.email.strip().lower()
+    """Log in via mobile phone number or Gmail address + password."""
+    from sqlalchemy import or_
+    phone_clean = body.phone.strip() if body.phone else ""
+    email_clean = body.email.strip().lower() if body.email else ""
 
-    if not phone_clean or not email_clean:
-        raise HTTPException(status_code=400, detail="Both Mobile Phone Number and Gmail address are mandatory for login.")
+    conditions = []
+    if phone_clean:
+        conditions.append(models.User.phone == phone_clean)
+    if email_clean:
+        conditions.append(models.User.email == email_clean)
 
-    user = db.query(models.User).filter(
-        (models.User.phone == phone_clean) & (models.User.email == email_clean)
-    ).first()
+    if not conditions:
+        raise HTTPException(status_code=400, detail="Please enter your Mobile Phone Number or Gmail address to log in.")
+
+    user = db.query(models.User).filter(or_(*conditions)).first()
 
     if not user or not verify_password(body.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid Mobile Number, Gmail, or Password.")
+        raise HTTPException(status_code=401, detail="Invalid Mobile Number/Gmail or Password.")
 
     # Update streak on login
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
