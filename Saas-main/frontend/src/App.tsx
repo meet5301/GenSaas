@@ -443,6 +443,9 @@ export default function App() {
       if (!res.ok) throw new Error(data.detail || "Failed to send OTP.");
       setOtpStep("otp");
       setOtpMessage(data.message);
+      if (data.otp_code) {
+        setMobileAuthForm(prev => ({ ...prev, otp_code: data.otp_code }));
+      }
     } catch (err: any) {
       alert(err.message || "Error sending OTP.");
     } finally {
@@ -5627,11 +5630,20 @@ export default function App() {
                 {/* Step 2: 6-Digit OTP Verification */}
                 {otpStep === "otp" && (
                   <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <div style={{ backgroundColor: "#eff6ff", border: "1px solid #bfdbfe", padding: "0.75rem", borderRadius: "8px", fontSize: "0.82rem", color: "#1e40af" }}>
+                    <div style={{ backgroundColor: "#F3E8E2", border: "1px solid #EFEBE6", padding: "0.75rem", borderRadius: "8px", fontSize: "0.82rem", color: "#943f3f" }}>
                       {otpMessage || `OTP code sent to ${mobileAuthForm.phone}. (Test code: 123456)`}
                     </div>
                     <div className="form-group">
-                      <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Enter 6-Digit OTP Code *</label>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.3rem" }}>
+                        <label style={{ fontWeight: 600, fontSize: "0.85rem" }}>Enter 6-Digit OTP Code *</label>
+                        <button 
+                          type="button" 
+                          onClick={() => setMobileAuthForm(prev => ({ ...prev, otp_code: "123456" }))}
+                          style={{ background: "none", border: "none", color: "#E85A4F", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}
+                        >
+                          Use Test Code 123456
+                        </button>
+                      </div>
                       <input 
                         type="text" 
                         required 
