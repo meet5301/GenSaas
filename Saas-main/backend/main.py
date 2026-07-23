@@ -37,20 +37,23 @@ app.add_middleware(BaseHTTPMiddleware, dispatch=security_headers_middleware)
 import os
 
 cors_origins = os.getenv("ALLOWED_ORIGINS")
-origins = [o.strip() for o in cors_origins.split(",")] if cors_origins else [
-    "http://127.0.0.1:5173",
-    "http://localhost:5173",
-    "*"
-]
-
-# Enable CORS for React frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+if cors_origins:
+    origins = [o.strip() for o in cors_origins.split(",")]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"https?://.*",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 @app.get("/")
 def read_root():

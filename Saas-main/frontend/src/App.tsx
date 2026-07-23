@@ -22,7 +22,6 @@ import {
   Download,
   MessageSquare,
   User,
-  Languages,
   Heart,
   Lock,
   Menu,
@@ -123,7 +122,7 @@ interface Category {
   subcategories: string;
 }
 
-const BACKEND_URL = (import.meta.env.VITE_API_URL as string) || (import.meta.env.DEV ? "http://localhost:8000" : "");
+const BACKEND_URL = (import.meta.env.VITE_API_URL as string) || (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://127.0.0.1:8000" : "");
 
 interface CustomDropdownProps {
   value: string;
@@ -592,7 +591,7 @@ export default function App() {
     }
   };
 
-  const [lang, setLang] = useState<"en" | "hi" | "gu">("en");
+  const lang = "en";
   const [isDarkMode] = useState(false);
 
   // Owner Password Verification Lock
@@ -1802,109 +1801,116 @@ export default function App() {
         {/* Global Toolbar */}
         <div className={`header-toolbar-wrapper ${isMobileNavOpen ? "open" : ""}`}>
           
-          {/* Language Selector */}
-          <CustomDropdown
-            value={lang}
-            onChange={(val) => setLang(val as any)}
-            options={[
-              { value: "en", label: "English" },
-              { value: "hi", label: "हिंदी (Hindi)" },
-              { value: "gu", label: "ગુજરાતી (Gujarati)" }
-            ]}
-            icon={<Languages size={15} style={{ color: "var(--color-text-muted)" }} />}
-          />
-
-          {/* SaaS Wallet & Streak Badges */}
-          {currentUser && (
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }} className="no-print">
-              <button 
-                onClick={() => setIsSaasModulesOpen(true)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.3rem",
-                  backgroundColor: "rgba(232, 90, 79, 0.1)",
-                  color: "#E85A4F",
-                  border: "1px solid rgba(232, 90, 79, 0.3)",
-                  padding: "0.3rem 0.75rem",
-                  borderRadius: "20px",
-                  fontSize: "0.82rem",
-                  fontWeight: 700,
-                  cursor: "pointer"
-                }}
-              >
-                💰 {dashboardSummary.wallet.points_balance} Pts
-              </button>
-              <button 
-                onClick={() => setIsSaasModulesOpen(true)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.3rem",
-                  backgroundColor: "rgba(245, 158, 11, 0.1)",
-                  color: "#d97706",
-                  border: "1px solid rgba(245, 158, 11, 0.3)",
-                  padding: "0.3rem 0.75rem",
-                  borderRadius: "20px",
-                  fontSize: "0.82rem",
-                  fontWeight: 700,
-                  cursor: "pointer"
-                }}
-              >
-                🔥 {dashboardSummary.streak.current_streak}d Streak
-              </button>
-              <button 
-                onClick={() => setIsSaasModulesOpen(true)}
-                className="btn btn-primary"
-                style={{
-                  padding: "0.3rem 0.75rem",
-                  fontSize: "0.78rem",
-                  borderRadius: "20px",
-                  backgroundColor: "#E85A4F"
-                }}
-              >
-                📦 SaaS Modules
-              </button>
-            </div>
-          )}
-
-          {/* Auth Trigger Button */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }} className="no-print">
-            {currentUser ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hello, {currentUser.name}</span>
-                <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: "0.3rem 0.6rem", fontSize: "0.78rem", borderRadius: "12px" }}>Logout</button>
+          {/* Main Action Group: SaaS Badges + Login/Signup + Role Selector side-by-side */}
+          <div className="header-action-group">
+            
+            {/* SaaS Wallet & Streak Badges */}
+            {currentUser && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }} className="no-print">
+                <button 
+                  onClick={() => setIsSaasModulesOpen(true)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.3rem",
+                    backgroundColor: "rgba(232, 90, 79, 0.1)",
+                    color: "#E85A4F",
+                    border: "1px solid rgba(232, 90, 79, 0.3)",
+                    padding: "0.35rem 0.75rem",
+                    borderRadius: "20px",
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  💰 {dashboardSummary.wallet.points_balance} Pts
+                </button>
+                <button 
+                  onClick={() => setIsSaasModulesOpen(true)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.3rem",
+                    backgroundColor: "rgba(245, 158, 11, 0.1)",
+                    color: "#d97706",
+                    border: "1px solid rgba(245, 158, 11, 0.3)",
+                    padding: "0.35rem 0.75rem",
+                    borderRadius: "20px",
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  🔥 {dashboardSummary.streak.current_streak}d Streak
+                </button>
+                <button 
+                  onClick={() => setIsSaasModulesOpen(true)}
+                  className="btn btn-primary"
+                  style={{
+                    padding: "0.35rem 0.75rem",
+                    fontSize: "0.78rem",
+                    borderRadius: "20px",
+                    backgroundColor: "#E85A4F",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  📦 SaaS Modules
+                </button>
               </div>
-            ) : (
-              <button onClick={() => { setIsAuthModalOpen(true); setAuthMode("login"); setOtpStep("phone"); }} className="btn btn-secondary" style={{ padding: "0.3rem 0.6rem", fontSize: "0.78rem", borderRadius: "12px" }}>
-                Login / Signup
-              </button>
+            )}
+
+            {/* Auth Trigger Button */}
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }} className="no-print">
+              {currentUser ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hello, {currentUser.name}</span>
+                  <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: "0.35rem 0.75rem", fontSize: "0.78rem", borderRadius: "12px", whiteSpace: "nowrap" }}>Logout</button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => { setIsAuthModalOpen(true); setAuthMode("login"); setOtpStep("phone"); }} 
+                  className="btn btn-primary" 
+                  style={{ 
+                    padding: "0.4rem 0.9rem", 
+                    fontSize: "0.82rem", 
+                    borderRadius: "20px", 
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                    backgroundColor: "#E85A4F",
+                    boxShadow: "0 2px 8px rgba(232, 90, 79, 0.25)"
+                  }}
+                >
+                  🔑 Login / Signup
+                </button>
+              )}
+            </div>
+
+            {/* Auth Role Mock Selector */}
+            {view !== "builder" && (
+              <CustomDropdown
+                value={userRole}
+                onChange={(val) => {
+                  setUserRole(val);
+                  if (val === "Customer") {
+                    setView("storefront");
+                    setIsConsoleOpen(false);
+                  }
+                }}
+                options={[
+                  { value: "Store Owner", label: "Store Owner" },
+                  { value: "Super Admin", label: "Super Admin" },
+                  { value: "Manager", label: "Manager" },
+                  { value: "Cashier", label: "Cashier" },
+                  { value: "Customer", label: "Customer" }
+                ]}
+                icon={<User size={15} style={{ color: "var(--color-accent-red)" }} />}
+                color="var(--color-accent-red)"
+                style={{ borderColor: "var(--color-accent-red)" }}
+              />
             )}
           </div>
-
-          {/* Auth Role Mock Selector */}
-          {view !== "builder" && (
-            <CustomDropdown
-              value={userRole}
-              onChange={(val) => {
-                setUserRole(val);
-                if (val === "Customer") {
-                  setView("storefront");
-                  setIsConsoleOpen(false);
-                }
-              }}
-              options={[
-                { value: "Store Owner", label: "Store Owner" },
-                { value: "Super Admin", label: "Super Admin" },
-                { value: "Manager", label: "Manager" },
-                { value: "Cashier", label: "Cashier" },
-                { value: "Customer", label: "Customer" }
-              ]}
-              icon={<User size={15} style={{ color: "var(--color-accent-red)" }} />}
-              color="var(--color-accent-red)"
-              style={{ borderColor: "var(--color-accent-red)" }}
-            />
-          )}
 
           {view === "builder" && (
             <div className="nav-links-center" style={{ display: "flex", gap: "2rem" }}>

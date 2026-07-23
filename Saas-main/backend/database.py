@@ -9,7 +9,9 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    DATABASE_URL = "sqlite:///./kirana.db"
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    db_file_path = os.path.join(BASE_DIR, "kirana.db")
+    DATABASE_URL = f"sqlite:///{db_file_path}"
 else:
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)

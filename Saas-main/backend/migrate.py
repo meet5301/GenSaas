@@ -1,9 +1,14 @@
 import sqlite3
 import os
 
-db_path = "kirana.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+db_path = os.path.join(BASE_DIR, "kirana.db")
 
 def migrate():
+    from database import engine
+    import models
+    models.Base.metadata.create_all(bind=engine)
+
     if not os.path.exists(db_path):
         print(f"Database file {db_path} does not exist. No migration needed.")
         return
