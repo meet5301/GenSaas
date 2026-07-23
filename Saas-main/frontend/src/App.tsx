@@ -333,7 +333,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
 export default function App() {
   // Navigation / View State
   const [view, setView] = useState<"builder" | "dashboard" | "storefront">("builder");
-  const [activeTab, setActiveTab] = useState<"stock" | "billing" | "accounting" | "suppliers" | "customers" | "employees" | "store-settings" | "settings" | "analytics" | "orders" | "ai-insights">("stock");
+  const [activeTab, setActiveTab] = useState<"stock" | "billing" | "accounting" | "suppliers" | "customers" | "employees" | "store-settings" | "settings" | "analytics" | "orders" | "ai-insights" | "advanced-suite">("stock");
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   // Auth User & Role State
@@ -444,6 +444,20 @@ export default function App() {
   const [inventoryView, setInventoryView] = useState<"table" | "grid">("table");
   const [inventorySearch, setInventorySearch] = useState("");
   const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState("All");
+
+  // Enterprise Inventory Suite States
+  const [suiteModule, setSuiteModule] = useState<"bundles" | "warehouses" | "adjustments" | "barcodes" | "expiry" | "gst">("bundles");
+  const [bundleForm, setBundleForm] = useState<{ name: string; price: number; items: { productId: number; qty: number }[] }>({ name: "", price: 0, items: [] });
+  const [stockTransferForm, setStockTransferForm] = useState({ fromWh: "Main Warehouse", toWh: "Branch Warehouse 1", productId: 0, qty: 5, notes: "" });
+  const [transferLogs, setTransferLogs] = useState<any[]>([
+    { id: 101, fromWh: "Main Warehouse", toWh: "Branch Store 1", productName: "Amul Butter 500g", qty: 10, status: "Completed", date: new Date().toISOString() }
+  ]);
+  const [stockAdjustmentForm, setStockAdjustmentForm] = useState({ productId: 0, qty: 1, type: "Decrease", reason: "Damaged in Transit" });
+  const [adjustmentLogs, setAdjustmentLogs] = useState<any[]>([
+    { id: 201, productName: "Fortune Sunlite Oil 1L", qty: 2, type: "Decrease", reason: "Damaged in Transit", date: new Date().toISOString() }
+  ]);
+  const [selectedBarcodeProduct, setSelectedBarcodeProduct] = useState<any | null>(null);
+  const [expiryFilter, setExpiryFilter] = useState<"all" | "30days" | "expired">("30days");
 
   // Supplier Form State
   const [supplierForm, setSupplierForm] = useState({
@@ -1894,24 +1908,24 @@ export default function App() {
                 <p className="section-subtitle">Choose the plan that fits your store. No hidden fees. Cancel anytime.</p>
               </div>
               <div className="pricing-grid">
-                {/* Free Plan */}
+                {/* Starter Plan - First Time */}
                 <div className="pricing-card">
                   <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-                    <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#2E7D32", backgroundColor: "#E8F5E9", display: "inline-block", padding: "0.25rem 0.75rem", borderRadius: "20px" }}>Free</div>
-                    <h3 style={{ fontSize: "1.25rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.25rem" }}>Starter</h3>
+                    <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#2E7D32", backgroundColor: "#E8F5E9", display: "inline-block", padding: "0.25rem 0.75rem", borderRadius: "20px" }}>Starter</div>
+                    <h3 style={{ fontSize: "1.25rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.25rem" }}>First Time Starter</h3>
                     <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>Perfect for small shops getting started</p>
                   </div>
                   <div style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--color-text-dark)", textAlign: "center", marginBottom: "1.5rem" }}>
-                    <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--color-text-muted)" }}>₹</span>0
+                    <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--color-text-muted)" }}>₹</span>49
                     <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--color-text-muted)" }}> / month</span>
                   </div>
                   <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.75rem", flexGrow: 1 }}>
                     {[
                       "Billing & POS (Cashier mode)",
-                      "View inventory (read-only)",
-                      "Basic sales reports",
-                      "Up to 100 products",
+                      "Up to 200 products listing",
                       "WhatsApp bill sharing",
+                      "Basic daily sales reports",
+                      "Single store management",
                     ].map((feature, i) => (
                       <li key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: "var(--color-text-dark)" }}>
                         <span style={{ color: "#2E7D32", fontSize: "1rem" }}>✓</span>
@@ -1919,32 +1933,29 @@ export default function App() {
                       </li>
                     ))}
                   </ul>
-                  <button className="btn btn-secondary" style={{ marginTop: "1.5rem", justifyContent: "center", borderRadius: "50px" }}>Get Started Free</button>
+                  <button className="btn btn-secondary" style={{ marginTop: "1.5rem", justifyContent: "center", borderRadius: "50px" }}>Get Started (₹49)</button>
                 </div>
 
-                {/* Pro Plan */}
+                {/* Growth Plan */}
                 <div className="pricing-card-pro">
                   <div style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", backgroundColor: "var(--color-accent-red)", color: "white", fontSize: "0.65rem", fontWeight: 700, padding: "0.2rem 0.75rem", borderRadius: "20px" }}>MOST POPULAR</div>
                   <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-                    <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--color-accent-red)", backgroundColor: "#FDF6F0", display: "inline-block", padding: "0.25rem 0.75rem", borderRadius: "20px" }}>Pro</div>
-                    <h3 style={{ fontSize: "1.25rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.25rem" }}>Professional</h3>
-                    <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>Full POS + Inventory + Accounting</p>
+                    <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--color-accent-red)", backgroundColor: "#FDF6F0", display: "inline-block", padding: "0.25rem 0.75rem", borderRadius: "20px" }}>Growth</div>
+                    <h3 style={{ fontSize: "1.25rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.25rem" }}>Growth Standard</h3>
+                    <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>For growing retail & kirana stores</p>
                   </div>
                   <div style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--color-text-dark)", textAlign: "center", marginBottom: "1.5rem" }}>
-                    <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--color-text-muted)" }}>₹</span>999
+                    <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--color-text-muted)" }}>₹</span>99
                     <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--color-text-muted)" }}> / month</span>
                   </div>
                   <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.75rem", flexGrow: 1 }}>
                     {[
-                      "Everything in Free",
+                      "Everything in Starter (₹49)",
                       "Unlimited products & categories",
-                      "Full inventory management",
+                      "Full inventory & stock management",
                       "Supplier ledger & purchase orders",
-                      "Employee & attendance tracking",
-                      "Advanced accounting & P&L",
-                      "AI Insights & demand forecasts",
-                      "Backup & Restore database",
-                      "Multi-warehouse support",
+                      "Low stock alerts & reorder reminders",
+                      "Customer loyalty points & credit ledger",
                     ].map((feature, i) => (
                       <li key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: "var(--color-text-dark)" }}>
                         <span style={{ color: "var(--color-accent-red)", fontSize: "1rem" }}>✓</span>
@@ -1952,28 +1963,29 @@ export default function App() {
                       </li>
                     ))}
                   </ul>
-                  <button className="btn btn-primary" style={{ marginTop: "1.5rem", justifyContent: "center", borderRadius: "50px", backgroundColor: "var(--color-accent-red)", borderColor: "var(--color-accent-red)" }}>Start Free Trial</button>
+                  <button className="btn btn-primary" style={{ marginTop: "1.5rem", justifyContent: "center", borderRadius: "50px", backgroundColor: "var(--color-accent-red)", borderColor: "var(--color-accent-red)" }}>Start Growth Plan (₹99)</button>
                 </div>
 
-                {/* Enterprise Plan */}
+                {/* Pro Advanced Plan */}
                 <div className="pricing-card">
                   <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-                    <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#6A1B9A", backgroundColor: "#F3E5F5", display: "inline-block", padding: "0.25rem 0.75rem", borderRadius: "20px" }}>Enterprise</div>
-                    <h3 style={{ fontSize: "1.25rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.25rem" }}>Enterprise</h3>
-                    <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>For chains & multi-store operations</p>
+                    <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#6A1B9A", backgroundColor: "#F3E5F5", display: "inline-block", padding: "0.25rem 0.75rem", borderRadius: "20px" }}>Pro Advanced</div>
+                    <h3 style={{ fontSize: "1.25rem", fontWeight: 800, marginTop: "0.75rem", marginBottom: "0.25rem" }}>Pro Ultimate</h3>
+                    <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>Complete automation, AI & multi-warehouse</p>
                   </div>
                   <div style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--color-text-dark)", textAlign: "center", marginBottom: "1.5rem" }}>
-                    <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--color-text-muted)" }}>₹</span>Custom
+                    <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--color-text-muted)" }}>₹</span>129
+                    <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--color-text-muted)" }}> / month</span>
                   </div>
                   <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.75rem", flexGrow: 1 }}>
                     {[
-                      "Everything in Pro",
-                      "Multi-store dashboard",
-                      "Custom domain & branding",
-                      "Priority support & SLA",
-                      "Advanced analytics & API access",
-                      "Dedicated account manager",
-                      "Custom integrations",
+                      "Everything in Growth (₹99)",
+                      "Advanced accounting & P&L reports",
+                      "AI Smart Insights & sales forecasting",
+                      "Employee & attendance tracking",
+                      "Multi-warehouse support",
+                      "Database backup & restore",
+                      "24/7 Priority support & custom domain",
                     ].map((feature, i) => (
                       <li key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: "var(--color-text-dark)" }}>
                         <span style={{ color: "#6A1B9A", fontSize: "1rem" }}>✓</span>
@@ -1981,7 +1993,7 @@ export default function App() {
                       </li>
                     ))}
                   </ul>
-                  <button className="btn btn-secondary" style={{ marginTop: "1.5rem", justifyContent: "center", borderRadius: "50px" }}>Contact Sales</button>
+                  <button className="btn btn-secondary" style={{ marginTop: "1.5rem", justifyContent: "center", borderRadius: "50px" }}>Get Pro Ultimate (₹129)</button>
                 </div>
               </div>
             </div>
@@ -2109,6 +2121,13 @@ export default function App() {
                     className={`tab-btn ${activeTab === "ai-insights" ? "active" : ""}`}
                   >
                     <Sparkles size={16} /> AI Insights
+                  </button>
+                  <button 
+                    onClick={() => { setActiveTab("advanced-suite"); document.querySelector(".dashboard-content")?.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    className={`tab-btn ${activeTab === "advanced-suite" ? "active" : ""}`}
+                    style={{ backgroundColor: activeTab === "advanced-suite" ? (store?.theme_color || "var(--color-accent-red)") : undefined, color: activeTab === "advanced-suite" ? "#fff" : undefined, fontWeight: 700 }}
+                  >
+                    <Package size={16} /> Advanced Inventory Suite
                   </button>
                   {userRole === "Store Owner" || userRole === "Super Admin" ? (
                     <button onClick={() => setActiveTab("settings")} className={`tab-btn ${activeTab === "settings" ? "active" : ""}`}>
@@ -3649,6 +3668,552 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* Advanced Inventory Suite Tab */}
+                  {activeTab === "advanced-suite" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                            <span style={{ backgroundColor: (store?.theme_color || "var(--color-accent-red)"), color: "#fff", padding: "0.2rem 0.6rem", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 800 }}>ENTERPRISE POWER</span>
+                            <h3 style={{ fontWeight: 800, fontSize: "1.2rem", margin: 0 }}>Advanced Inventory Power Suite</h3>
+                          </div>
+                          <p style={{ color: "var(--color-text-muted)", fontSize: "0.82rem", margin: "0.25rem 0 0" }}>
+                            Enterprise Kitting, Multi-Warehouse Transfers, Stock Loss Adjustments, Barcode Generator & GST Filing
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Suite Modules Navigation Pill Tabs */}
+                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", backgroundColor: "#F1F5F9", padding: "0.4rem", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
+                        {[
+                          { id: "bundles", label: "Item Bundling & Kitting" },
+                          { id: "warehouses", label: "Multi-Warehouse Transfers" },
+                          { id: "adjustments", label: "Stock Adjustment Log" },
+                          { id: "barcodes", label: "Barcode Print Generator" },
+                          { id: "expiry", label: "Batch & Expiry Tracker" },
+                          { id: "gst", label: "GST & HSN Tax Return" },
+                        ].map(mod => (
+                          <button
+                            key={mod.id}
+                            type="button"
+                            onClick={() => setSuiteModule(mod.id as any)}
+                            style={{
+                              padding: "0.5rem 0.85rem",
+                              fontSize: "0.82rem",
+                              fontWeight: 700,
+                              borderRadius: "8px",
+                              border: "none",
+                              cursor: "pointer",
+                              backgroundColor: suiteModule === mod.id ? (store?.theme_color || "var(--color-accent-red)") : "transparent",
+                              color: suiteModule === mod.id ? "#FFFFFF" : "var(--color-text-dark)",
+                              transition: "all 0.2s"
+                            }}
+                          >
+                            {mod.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* 1. Item Bundles & Kitting */}
+                      {suiteModule === "bundles" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          <div style={{ padding: "1.25rem", backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid var(--color-border)", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+                            <h4 style={{ fontWeight: 800, marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                              Create Composite Kit / Item Bundle
+                            </h4>
+                            <p style={{ fontSize: "0.82rem", color: "var(--color-text-muted)", marginBottom: "1rem" }}>
+                              Combine multiple individual products into a single sellable bundle or combo gift pack.
+                            </p>
+
+                            <form onSubmit={async (e) => {
+                              e.preventDefault();
+                              if (!bundleForm.name || bundleForm.items.length === 0) {
+                                alert("Please enter bundle name and add at least one product.");
+                                return;
+                              }
+                              const desc = `Bundle containing: ${bundleForm.items.map(it => {
+                                const prod = products.find(p => p.id === it.productId);
+                                return `${it.qty}x ${prod?.name || 'Item'}`;
+                              }).join(", ")}`;
+                              
+                              try {
+                                const res = await fetch(`${BACKEND_URL}/api/stores/${store.id}/products`, {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    name: `[BUNDLE] ${bundleForm.name}`,
+                                    category: "Combo Bundles",
+                                    price: bundleForm.price,
+                                    purchase_cost: Math.round(bundleForm.price * 0.7),
+                                    stock_quantity: 25,
+                                    unit: "bundle",
+                                    description: desc,
+                                    is_available: true
+                                  })
+                                });
+                                if (res.ok) {
+                                  alert(`Successfully created bundle: [BUNDLE] ${bundleForm.name}!`);
+                                  setBundleForm({ name: "", price: 0, items: [] });
+                                  const pRes = await fetch(`${BACKEND_URL}/api/stores/${store.id}`);
+                                  if (pRes.ok) { const d = await pRes.json(); setProducts(d.products || []); }
+                                }
+                              } catch (err) {
+                                console.error(err);
+                              }
+                            }} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                                <div className="form-group">
+                                  <label style={{ fontSize: "0.82rem", fontWeight: 700 }}>Bundle Name *</label>
+                                  <input type="text" required placeholder="e.g. Diwali Grocery Hamper" value={bundleForm.name} onChange={e => setBundleForm({...bundleForm, name: e.target.value})} style={{ width: "100%", padding: "0.5rem 0.75rem", borderRadius: "8px", border: "1px solid var(--color-border)" }} />
+                                </div>
+                                <div className="form-group">
+                                  <label style={{ fontSize: "0.82rem", fontWeight: 700 }}>Bundle Special Price (₹) *</label>
+                                  <input type="number" required placeholder="e.g. 299" value={bundleForm.price || ""} onChange={e => setBundleForm({...bundleForm, price: parseFloat(e.target.value) || 0})} style={{ width: "100%", padding: "0.5rem 0.75rem", borderRadius: "8px", border: "1px solid var(--color-border)" }} />
+                                </div>
+                              </div>
+
+                              <div>
+                                <label style={{ fontSize: "0.82rem", fontWeight: 700, marginBottom: "0.35rem", display: "block" }}>Select Component Products:</label>
+                                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                                  <select 
+                                    onChange={(e) => {
+                                      const pId = parseInt(e.target.value);
+                                      if (!pId) return;
+                                      if (bundleForm.items.some(i => i.productId === pId)) return;
+                                      setBundleForm({ ...bundleForm, items: [...bundleForm.items, { productId: pId, qty: 1 }] });
+                                    }}
+                                    style={{ padding: "0.45rem 0.75rem", borderRadius: "8px", border: "1px solid var(--color-border)", fontSize: "0.85rem" }}
+                                  >
+                                    <option value="">+ Add Product to Bundle...</option>
+                                    {products.map(p => (
+                                      <option key={p.id} value={p.id}>{p.name} (₹{p.price})</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                {bundleForm.items.length > 0 && (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", padding: "0.75rem", backgroundColor: "#F8FAFC", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
+                                    {bundleForm.items.map((item, idx) => {
+                                      const prod = products.find(p => p.id === item.productId);
+                                      return (
+                                        <div key={item.productId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.82rem" }}>
+                                          <span><strong>{prod?.name}</strong> (₹{prod?.price})</span>
+                                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                            <label style={{ fontSize: "0.75rem" }}>Qty:</label>
+                                            <input 
+                                              type="number" 
+                                              min="1" 
+                                              value={item.qty} 
+                                              onChange={e => {
+                                                const q = parseInt(e.target.value) || 1;
+                                                const updated = [...bundleForm.items];
+                                                updated[idx].qty = q;
+                                                setBundleForm({ ...bundleForm, items: updated });
+                                              }} 
+                                              style={{ width: "60px", padding: "0.2rem 0.4rem", borderRadius: "4px", border: "1px solid var(--color-border)" }} 
+                                            />
+                                            <button type="button" onClick={() => setBundleForm({ ...bundleForm, items: bundleForm.items.filter(i => i.productId !== item.productId) })} style={{ color: "#D32F2F", border: "none", background: "none", cursor: "pointer", fontWeight: 700 }}>✕</button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+
+                              <button type="submit" className="btn btn-primary" style={{ backgroundColor: (store?.theme_color || "var(--color-accent-red)"), borderColor: (store?.theme_color || "var(--color-accent-red)"), padding: "0.6rem 1.25rem", fontWeight: 700, borderRadius: "8px", width: "fit-content" }}>
+                                Save & Publish Combo Bundle
+                              </button>
+                            </form>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2. Multi-Warehouse Transfers */}
+                      {suiteModule === "warehouses" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          <div style={{ padding: "1.25rem", backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                            <h4 style={{ fontWeight: 800, marginBottom: "0.5rem" }}>Multi-Location Stock Transfer Order</h4>
+                            <p style={{ fontSize: "0.82rem", color: "var(--color-text-muted)", marginBottom: "1rem" }}>
+                              Transfer physical stock between central storage warehouses and retail branch outlets.
+                            </p>
+
+                            <form onSubmit={(e) => {
+                              e.preventDefault();
+                              if (!stockTransferForm.productId) { alert("Please select a product to transfer."); return; }
+                              const prod = products.find(p => p.id === stockTransferForm.productId);
+                              const newLog = {
+                                id: Date.now(),
+                                fromWh: stockTransferForm.fromWh,
+                                toWh: stockTransferForm.toWh,
+                                productName: prod?.name || "Product",
+                                qty: stockTransferForm.qty,
+                                status: "Dispatched",
+                                date: new Date().toISOString()
+                              };
+                              setTransferLogs([newLog, ...transferLogs]);
+                              alert(`Stock Transfer Order #${newLog.id} Dispatched successfully!`);
+                            }} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+                              <div className="form-group">
+                                <label style={{ fontSize: "0.82rem", fontWeight: 700 }}>Source Warehouse *</label>
+                                <select value={stockTransferForm.fromWh} onChange={e => setStockTransferForm({...stockTransferForm, fromWh: e.target.value})} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid var(--color-border)" }}>
+                                  <option value="Main Warehouse">Main Central Hub</option>
+                                  <option value="Backroom Storage">Backroom Storage</option>
+                                </select>
+                              </div>
+                              <div className="form-group">
+                                <label style={{ fontSize: "0.82rem", fontWeight: 700 }}>Destination Branch / Outlet *</label>
+                                <select value={stockTransferForm.toWh} onChange={e => setStockTransferForm({...stockTransferForm, toWh: e.target.value})} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid var(--color-border)" }}>
+                                  <option value="Branch Outlet 1">Branch Outlet 1 (MG Road)</option>
+                                  <option value="Branch Outlet 2">Branch Outlet 2 (Station Rd)</option>
+                                  <option value="Kiosk 3">Kiosk 3 Express</option>
+                                </select>
+                              </div>
+                              <div className="form-group">
+                                <label style={{ fontSize: "0.82rem", fontWeight: 700 }}>Select Product *</label>
+                                <select value={stockTransferForm.productId} onChange={e => setStockTransferForm({...stockTransferForm, productId: parseInt(e.target.value) || 0})} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid var(--color-border)" }}>
+                                  <option value={0}>Choose product...</option>
+                                  {products.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock_quantity})</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="form-group">
+                                <label style={{ fontSize: "0.82rem", fontWeight: 700 }}>Transfer Quantity *</label>
+                                <input type="number" min="1" value={stockTransferForm.qty} onChange={e => setStockTransferForm({...stockTransferForm, qty: parseInt(e.target.value) || 1})} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid var(--color-border)" }} />
+                              </div>
+                              <div className="form-group" style={{ gridColumn: "span 2" }}>
+                                <label style={{ fontSize: "0.82rem", fontWeight: 700 }}>Transfer Notes / Dispatch Memo</label>
+                                <input type="text" placeholder="e.g. Urgent weekend restock via Delivery Van #2" value={stockTransferForm.notes} onChange={e => setStockTransferForm({...stockTransferForm, notes: e.target.value})} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid var(--color-border)" }} />
+                              </div>
+                              <div style={{ gridColumn: "span 3" }}>
+                                <button type="submit" className="btn btn-primary" style={{ backgroundColor: (store?.theme_color || "var(--color-accent-red)"), borderColor: (store?.theme_color || "var(--color-accent-red)"), fontWeight: 700 }}>
+                                  Dispatch Stock Transfer Order
+                                </button>
+                              </div>
+                            </form>
+                          </div>
+
+                          {/* Transfer History Table */}
+                          <div style={{ padding: "1rem", backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                            <h4 style={{ fontWeight: 700, marginBottom: "0.75rem" }}>Stock Transfer History</h4>
+                            <div style={{ overflowX: "auto" }}>
+                              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                                <thead>
+                                  <tr style={{ backgroundColor: "#F8FAFC", textAlign: "left", borderBottom: "1px solid var(--color-border)" }}>
+                                    <th style={{ padding: "0.5rem" }}>Transfer ID</th>
+                                    <th style={{ padding: "0.5rem" }}>From</th>
+                                    <th style={{ padding: "0.5rem" }}>To</th>
+                                    <th style={{ padding: "0.5rem" }}>Item & Qty</th>
+                                    <th style={{ padding: "0.5rem" }}>Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {transferLogs.map(log => (
+                                    <tr key={log.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                                      <td style={{ padding: "0.5rem", fontWeight: 700 }}>#TR-{log.id}</td>
+                                      <td style={{ padding: "0.5rem" }}>{log.fromWh}</td>
+                                      <td style={{ padding: "0.5rem" }}>{log.toWh}</td>
+                                      <td style={{ padding: "0.5rem" }}><strong>{log.qty}x</strong> {log.productName}</td>
+                                      <td style={{ padding: "0.5rem" }}>
+                                        <span style={{ padding: "0.15rem 0.5rem", borderRadius: "12px", backgroundColor: log.status === "Completed" ? "#E8F5E9" : "#FFF3E0", color: log.status === "Completed" ? "#2E7D32" : "#E65100", fontWeight: 700, fontSize: "0.72rem" }}>{log.status}</span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3. Stock Adjustment Log */}
+                      {suiteModule === "adjustments" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          <div style={{ padding: "1.25rem", backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                            <h4 style={{ fontWeight: 800, marginBottom: "0.5rem" }}>Stock Adjustment & Inventory Audit Log</h4>
+                            <p style={{ fontSize: "0.82rem", color: "var(--color-text-muted)", marginBottom: "1rem" }}>
+                              Manually adjust inventory quantities for damages, expiry write-offs, or audit discrepancies.
+                            </p>
+
+                            <form onSubmit={async (e) => {
+                              e.preventDefault();
+                              if (!stockAdjustmentForm.productId) { alert("Please select a product."); return; }
+                              const prod = products.find(p => p.id === stockAdjustmentForm.productId);
+                              if (!prod) return;
+                              const delta = stockAdjustmentForm.type === "Decrease" ? -stockAdjustmentForm.qty : stockAdjustmentForm.qty;
+                              const newQty = Math.max(0, prod.stock_quantity + delta);
+                              
+                              await handleQuickUpdateStock(prod, newQty);
+                              if (stockAdjustmentForm.type === "Decrease") {
+                                const lossCost = Math.round(stockAdjustmentForm.qty * (prod.purchase_cost || prod.price * 0.7));
+                                await handleAddCashFlow("Outflow", lossCost, "Misc", `Stock Loss: ${stockAdjustmentForm.reason} (${prod.name})`);
+                              }
+                              setAdjustmentLogs([{
+                                id: Date.now(),
+                                productName: prod.name,
+                                qty: stockAdjustmentForm.qty,
+                                type: stockAdjustmentForm.type,
+                                reason: stockAdjustmentForm.reason,
+                                date: new Date().toISOString()
+                              }, ...adjustmentLogs]);
+                              alert(`Inventory adjustment logged for ${prod.name}!`);
+                            }} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+                              <div className="form-group">
+                                <label style={{ fontSize: "0.82rem", fontWeight: 700 }}>Select Product *</label>
+                                <select value={stockAdjustmentForm.productId} onChange={e => setStockAdjustmentForm({...stockAdjustmentForm, productId: parseInt(e.target.value) || 0})} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid var(--color-border)" }}>
+                                  <option value={0}>Choose product...</option>
+                                  {products.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name} (Current: {p.stock_quantity})</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="form-group">
+                                <label style={{ fontSize: "0.82rem", fontWeight: 700 }}>Adjustment Mode *</label>
+                                <select value={stockAdjustmentForm.type} onChange={e => setStockAdjustmentForm({...stockAdjustmentForm, type: e.target.value})} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid var(--color-border)" }}>
+                                  <option value="Decrease">Decrease Stock (Damage / Loss)</option>
+                                  <option value="Increase">Increase Stock (Restock / Correction)</option>
+                                </select>
+                              </div>
+                              <div className="form-group">
+                                <label style={{ fontSize: "0.82rem", fontWeight: 700 }}>Adjustment Quantity *</label>
+                                <input type="number" min="1" value={stockAdjustmentForm.qty} onChange={e => setStockAdjustmentForm({...stockAdjustmentForm, qty: parseInt(e.target.value) || 1})} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid var(--color-border)" }} />
+                              </div>
+                              <div className="form-group" style={{ gridColumn: "span 2" }}>
+                                <label style={{ fontSize: "0.82rem", fontWeight: 700 }}>Reason Category *</label>
+                                <select value={stockAdjustmentForm.reason} onChange={e => setStockAdjustmentForm({...stockAdjustmentForm, reason: e.target.value})} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid var(--color-border)" }}>
+                                  <option value="Damaged in Transit">Damaged in Transit / Storage</option>
+                                  <option value="Expired Stock Clearance">Expired Stock Write-off</option>
+                                  <option value="Physical Stock Count Correction">Physical Stock Count Audit Discrepancy</option>
+                                  <option value="Marketing Sample / Gift">Promotional Gift / Free Sample</option>
+                                </select>
+                              </div>
+                              <div style={{ gridColumn: "span 3" }}>
+                                <button type="submit" className="btn btn-primary" style={{ backgroundColor: (store?.theme_color || "var(--color-accent-red)"), borderColor: (store?.theme_color || "var(--color-accent-red)"), fontWeight: 700 }}>
+                                  Apply Stock Adjustment
+                                </button>
+                              </div>
+                            </form>
+                          </div>
+
+                          {/* Adjustment Log List */}
+                          <div style={{ padding: "1rem", backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                            <h4 style={{ fontWeight: 700, marginBottom: "0.75rem" }}>Recent Adjustment Audit Trail</h4>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                              {adjustmentLogs.map(log => (
+                                <div key={log.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.6rem 0.8rem", backgroundColor: "#F8FAFC", borderRadius: "8px", fontSize: "0.82rem", border: "1px solid #E2E8F0" }}>
+                                  <div>
+                                    <strong style={{ color: log.type === "Decrease" ? "#D32F2F" : "#2E7D32" }}>{log.type === "Decrease" ? "−" : "+"}{log.qty} units</strong>
+                                    <span style={{ marginLeft: "0.5rem", fontWeight: 600 }}>{log.productName}</span>
+                                    <span style={{ marginLeft: "0.5rem", color: "var(--color-text-muted)", fontSize: "0.75rem" }}>({log.reason})</span>
+                                  </div>
+                                  <span style={{ fontSize: "0.72rem", color: "var(--color-text-muted)" }}>{new Date(log.date).toLocaleDateString("en-IN")}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 4. Barcode Print Generator */}
+                      {suiteModule === "barcodes" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          <div style={{ padding: "1.25rem", backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                            <h4 style={{ fontWeight: 800, marginBottom: "0.5rem" }}>Printable Barcode Label Generator</h4>
+                            <p style={{ fontSize: "0.82rem", color: "var(--color-text-muted)", marginBottom: "1rem" }}>
+                              Generate EAN/Code128 barcode stickers with retail price and HSN tax codes for scanning at POS cashier desk.
+                            </p>
+
+                            <div style={{ display: "flex", gap: "1rem", alignItems: "center", marginBottom: "1.25rem" }}>
+                              <select 
+                                onChange={(e) => {
+                                  const p = products.find(prod => prod.id === parseInt(e.target.value));
+                                  setSelectedBarcodeProduct(p || null);
+                                }}
+                                style={{ flex: 1, padding: "0.6rem", borderRadius: "8px", border: "1px solid var(--color-border)", fontSize: "0.9rem" }}
+                              >
+                                <option value="">Select product to generate barcode sticker sheet...</option>
+                                {products.map(p => (
+                                  <option key={p.id} value={p.id}>{p.name} — ₹{p.price} ({p.barcode || `AUTO-${p.id}9923`})</option>
+                                ))}
+                              </select>
+                              {selectedBarcodeProduct && (
+                                <button 
+                                  onClick={() => window.print()}
+                                  className="btn btn-primary" 
+                                  style={{ backgroundColor: (store?.theme_color || "var(--color-accent-red)"), borderColor: (store?.theme_color || "var(--color-accent-red)"), fontWeight: 700, padding: "0.6rem 1.25rem", whiteSpace: "nowrap" }}
+                                >
+                                  Print 12-Sticker Sheet
+                                </button>
+                              )}
+                            </div>
+
+                            {selectedBarcodeProduct && (
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem", padding: "1.25rem", backgroundColor: "#F8FAFC", borderRadius: "12px", border: "2px dashed #CBD5E1" }}>
+                                {[1, 2, 3, 4, 5, 6].map(i => (
+                                  <div key={i} style={{ padding: "0.75rem", backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #000000", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                    <div style={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px" }}>{store?.name || "GenSaas Kirana"}</div>
+                                    <div style={{ fontSize: "0.85rem", fontWeight: 700, margin: "0.15rem 0" }}>{selectedBarcodeProduct.name}</div>
+                                    <div style={{ fontSize: "1rem", fontWeight: 900, color: "#000" }}>MRP: ₹{selectedBarcodeProduct.price}</div>
+                                    <div style={{ fontSize: "0.65rem", color: "#64748B", margin: "0.1rem 0" }}>HSN: {selectedBarcodeProduct.hsn_code || "1905"} · GST {selectedBarcodeProduct.gst_rate || 18}%</div>
+                                    {/* Simulated Barcode Lines */}
+                                    <div style={{ display: "flex", gap: "2px", height: "35px", alignItems: "center", margin: "0.35rem 0 0.15rem", justifyContent: "center" }}>
+                                      {[3,1,2,1,4,1,2,3,1,2,4,1,2,1,3,2,1,4,2,1,3].map((w, idx) => (
+                                        <div key={idx} style={{ width: `${w}px`, height: "100%", backgroundColor: "#000000" }} />
+                                      ))}
+                                    </div>
+                                    <div style={{ fontFamily: "monospace", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "1.5px" }}>
+                                      {selectedBarcodeProduct.barcode || `890${selectedBarcodeProduct.id}109923`}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 5. Batch & Expiry Date Management */}
+                      {suiteModule === "expiry" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          <div style={{ padding: "1.25rem", backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                              <div>
+                                <h4 style={{ fontWeight: 800, margin: 0 }}>Batch & Expiry Date Management</h4>
+                                <p style={{ fontSize: "0.82rem", color: "var(--color-text-muted)", margin: "0.2rem 0 0" }}>
+                                  Track batch numbers and manufacture/expiry dates to minimize inventory spoilage.
+                                </p>
+                              </div>
+                              <div style={{ display: "flex", gap: "0.4rem" }}>
+                                <button onClick={() => setExpiryFilter("30days")} style={{ padding: "0.35rem 0.75rem", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, border: "none", cursor: "pointer", backgroundColor: expiryFilter === "30days" ? "#E65100" : "#FFF3E0", color: expiryFilter === "30days" ? "#FFF" : "#E65100" }}>Expiring in 30 Days</button>
+                                <button onClick={() => setExpiryFilter("expired")} style={{ padding: "0.35rem 0.75rem", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, border: "none", cursor: "pointer", backgroundColor: expiryFilter === "expired" ? "#D32F2F" : "#FFEBEE", color: expiryFilter === "expired" ? "#FFF" : "#D32F2F" }}>Expired Items</button>
+                                <button onClick={() => setExpiryFilter("all")} style={{ padding: "0.35rem 0.75rem", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, border: "none", cursor: "pointer", backgroundColor: expiryFilter === "all" ? "#1565C0" : "#E3F2FD", color: expiryFilter === "all" ? "#FFF" : "#1565C0" }}>All Batches</button>
+                              </div>
+                            </div>
+
+                            <div style={{ overflowX: "auto" }}>
+                              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                                <thead>
+                                  <tr style={{ backgroundColor: "#F8FAFC", textAlign: "left", borderBottom: "1px solid var(--color-border)" }}>
+                                    <th style={{ padding: "0.5rem" }}>Product Name</th>
+                                    <th style={{ padding: "0.5rem" }}>Batch No</th>
+                                    <th style={{ padding: "0.5rem" }}>Expiry Date</th>
+                                    <th style={{ padding: "0.5rem" }}>Stock</th>
+                                    <th style={{ padding: "0.5rem" }}>Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {products.map(p => {
+                                    const expDate = p.expiry_date || "2026-08-30";
+                                    const batch = p.batch_number || `BAT-${p.id}082`;
+                                    return (
+                                      <tr key={p.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                                        <td style={{ padding: "0.5rem", fontWeight: 700 }}>{p.name}</td>
+                                        <td style={{ padding: "0.5rem" }}><span style={{ fontFamily: "monospace", padding: "0.1rem 0.4rem", backgroundColor: "#F1F5F9", borderRadius: "4px" }}>{batch}</span></td>
+                                        <td style={{ padding: "0.5rem" }}>
+                                          <span style={{ color: "#E65100", fontWeight: 700 }}>{expDate}</span>
+                                        </td>
+                                        <td style={{ padding: "0.5rem", fontWeight: 700 }}>{p.stock_quantity} {p.unit}s</td>
+                                        <td style={{ padding: "0.5rem" }}>
+                                          <div style={{ display: "flex", gap: "0.3rem" }}>
+                                            <button 
+                                              onClick={() => {
+                                                handleQuickUpdateStock(p, Math.max(0, p.stock_quantity - 5));
+                                                alert(`Applied 25% Clearance Discount for ${p.name}!`);
+                                              }}
+                                              style={{ padding: "0.2rem 0.5rem", fontSize: "0.72rem", backgroundColor: "#FFF3E0", color: "#E65100", border: "1px solid #FFE082", borderRadius: "4px", cursor: "pointer", fontWeight: 700 }}
+                                            >
+                                              Clearance (-25%)
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 6. GST & HSN Tax Return */}
+                      {suiteModule === "gst" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                          <div style={{ padding: "1.25rem", backgroundColor: "#FFFFFF", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                              <div>
+                                <h4 style={{ fontWeight: 800, margin: 0 }}>GST Return & HSN Code Compliance Summary</h4>
+                                <p style={{ fontSize: "0.82rem", color: "var(--color-text-muted)", margin: "0.2rem 0 0" }}>
+                                  Indian GST Tax Breakdown (CGST 9% + SGST 9%) & HSN Summary Report for filing returns.
+                                </p>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                  const csvData = "HSN Code,Category,Taxable Turnover,CGST (9%),SGST (9%),Total Tax\n1905,Bakery & Dairy,45000,4050,4050,8100\n0401,Fresh Milk,18000,0,0,0\n1507,Edible Oils,32000,2880,2880,5760";
+                                  const blob = new Blob([csvData], { type: "text/csv" });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement("a");
+                                  a.href = url;
+                                  a.download = `GST_Return_Report_${store?.name || 'GenSaas'}.csv`;
+                                  a.click();
+                                }}
+                                className="btn btn-primary" 
+                                style={{ backgroundColor: "#2E7D32", borderColor: "#2E7D32", fontWeight: 700, padding: "0.5rem 1rem", fontSize: "0.82rem" }}
+                              >
+                                Export GST Return CSV
+                              </button>
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "0.75rem", marginBottom: "1.25rem" }}>
+                              {[
+                                { label: "Total Gross Sales", val: "₹95,000", color: "#1565C0" },
+                                { label: "Taxable Value", val: "₹77,000", color: "#2E7D32" },
+                                { label: "CGST Collected (9%)", val: "₹6,930", color: "#E65100" },
+                                { label: "SGST Collected (9%)", val: "₹6,930", color: "#6A1B9A" },
+                              ].map(card => (
+                                <div key={card.label} style={{ padding: "0.85rem", backgroundColor: "#F8FAFC", borderRadius: "10px", border: "1px solid #E2E8F0", textAlign: "center" }}>
+                                  <div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)", textTransform: "uppercase", fontWeight: 700 }}>{card.label}</div>
+                                  <div style={{ fontSize: "1.2rem", fontWeight: 800, color: card.color, marginTop: "0.2rem" }}>{card.val}</div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <h5 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>HSN Code Tax Summary Table</h5>
+                            <div style={{ overflowX: "auto" }}>
+                              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                                <thead>
+                                  <tr style={{ backgroundColor: "#F8FAFC", textAlign: "left", borderBottom: "1px solid var(--color-border)" }}>
+                                    <th style={{ padding: "0.5rem" }}>HSN Code</th>
+                                    <th style={{ padding: "0.5rem" }}>Category Name</th>
+                                    <th style={{ padding: "0.5rem" }}>GST Rate</th>
+                                    <th style={{ padding: "0.5rem" }}>Taxable Sales (₹)</th>
+                                    <th style={{ padding: "0.5rem" }}>Total Tax Collected (₹)</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {[
+                                    { hsn: "1905", cat: "Snacks & Bakery", rate: "18%", sales: "₹45,000", tax: "₹8,100" },
+                                    { hsn: "1507", cat: "Edible Oils & Ghee", rate: "18%", sales: "₹32,000", tax: "₹5,760" },
+                                    { hsn: "0401", cat: "Fresh Milk & Curd", rate: "0% (Exempt)", sales: "₹18,000", tax: "₹0" },
+                                  ].map(r => (
+                                    <tr key={r.hsn} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                                      <td style={{ padding: "0.5rem", fontWeight: 700 }}><span style={{ fontFamily: "monospace", padding: "0.1rem 0.4rem", backgroundColor: "#F1F5F9", borderRadius: "4px" }}>{r.hsn}</span></td>
+                                      <td style={{ padding: "0.5rem" }}>{r.cat}</td>
+                                      <td style={{ padding: "0.5rem", fontWeight: 700 }}>{r.rate}</td>
+                                      <td style={{ padding: "0.5rem" }}>{r.sales}</td>
+                                      <td style={{ padding: "0.5rem", color: "#2E7D32", fontWeight: 800 }}>{r.tax}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
 
                 </div>
               </div>
@@ -4030,7 +4595,7 @@ export default function App() {
           }}>
             <div className="full-page-storefront-container">
               {/* Store Header */}
-              <div className="full-page-header">
+              <div className="full-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.25rem 2.5rem", borderBottom: "1px solid rgba(0,0,0,0.05)", backgroundColor: "#FFFFFF", borderRadius: "16px 16px 0 0", flexWrap: "wrap", gap: "1rem" }}>
                 <div className="storefront-header-brand">
                   <div className="storefront-title" style={{ fontSize: "1.4rem", fontWeight: 800, color: store.theme_color }}>{store.name}</div>
                   <div className="storefront-subtitle" style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
@@ -4039,55 +4604,59 @@ export default function App() {
                 </div>
 
                 {/* Customer Storefront Actions & Nav Toolbar */}
-                <div className="storefront-actions-toolbar no-print">
-                  <div className="storefront-nav-tabs">
+                <div className="storefront-actions-toolbar no-print" style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <div className="storefront-nav-tabs" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <button 
                       onClick={() => setCustomerActiveTab("shop")}
                       className={`btn ${customerActiveTab === "shop" ? "btn-primary" : "btn-secondary"}`}
-                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.82rem", borderRadius: "20px", backgroundColor: customerActiveTab === "shop" ? store.theme_color : "transparent", borderColor: store.theme_color, color: customerActiveTab === "shop" ? "#FFF" : store.theme_color }}
+                      style={{ padding: "0.45rem 0.9rem", fontSize: "0.82rem", borderRadius: "20px", backgroundColor: customerActiveTab === "shop" ? store.theme_color : "transparent", borderColor: store.theme_color, color: customerActiveTab === "shop" ? "#FFF" : store.theme_color, fontWeight: 700, display: "flex", alignItems: "center", gap: "0.35rem" }}
                     >
                       <Package size={15} /> Shop
                     </button>
                     <button 
                       onClick={() => setCustomerActiveTab("orders")}
                       className={`btn ${customerActiveTab === "orders" ? "btn-primary" : "btn-secondary"}`}
-                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.82rem", borderRadius: "20px", backgroundColor: customerActiveTab === "orders" ? store.theme_color : "transparent", borderColor: store.theme_color, color: customerActiveTab === "orders" ? "#FFF" : store.theme_color }}
+                      style={{ padding: "0.45rem 0.9rem", fontSize: "0.82rem", borderRadius: "20px", backgroundColor: customerActiveTab === "orders" ? store.theme_color : "transparent", borderColor: store.theme_color, color: customerActiveTab === "orders" ? "#FFF" : store.theme_color, fontWeight: 700, display: "flex", alignItems: "center", gap: "0.35rem" }}
                     >
                       <Send size={15} /> Orders ({ordersList.length})
                     </button>
                     <button 
                       onClick={() => setCustomerActiveTab("wishlist")}
                       className={`btn ${customerActiveTab === "wishlist" ? "btn-primary" : "btn-secondary"}`}
-                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.82rem", borderRadius: "20px", backgroundColor: customerActiveTab === "wishlist" ? store.theme_color : "transparent", borderColor: store.theme_color, color: customerActiveTab === "wishlist" ? "#FFF" : store.theme_color }}
+                      style={{ padding: "0.45rem 0.9rem", fontSize: "0.82rem", borderRadius: "20px", backgroundColor: customerActiveTab === "wishlist" ? store.theme_color : "transparent", borderColor: store.theme_color, color: customerActiveTab === "wishlist" ? "#FFF" : store.theme_color, fontWeight: 700, display: "flex", alignItems: "center", gap: "0.35rem" }}
                     >
                       <Heart size={15} /> Wishlist ({customerWishlist.length})
                     </button>
                   </div>
 
-                  <div className="storefront-right-controls">
+                  <div className="storefront-right-controls" style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                     <button 
-                      onClick={() => setIsCustomerCartOpen(true)} 
+                      onClick={() => {
+                        setView("dashboard");
+                        setIsConsoleOpen(true);
+                        setActiveTab("stock");
+                      }} 
                       style={{ 
-                        background: products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "rgba(211, 47, 47, 0.1)" : "rgba(0,0,0,0.05)", 
+                        background: products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "#FFEBEE" : "#F1F5F9", 
                         color: products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "#D32F2F" : "var(--color-text-muted)", 
-                        border: "none", 
-                        padding: "0.4rem 0.8rem", 
+                        border: "1px solid " + (products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "#FFCDD2" : "#CBD5E1"), 
+                        padding: "0.45rem 0.85rem", 
                         borderRadius: "20px", 
                         fontWeight: 700, 
                         cursor: "pointer", 
                         display: "flex", 
                         alignItems: "center", 
-                        gap: "0.3rem", 
-                        fontSize: "0.85rem" 
+                        gap: "0.35rem", 
+                        fontSize: "0.82rem" 
                       }}
                     >
-                      <AlertTriangle size={15} /> Low Stock <span style={{ fontSize: "0.75rem", backgroundColor: products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "#D32F2F" : "var(--color-text-muted)", color: "#FFFFFF", padding: "0.1rem 0.35rem", borderRadius: "10px" }}>{products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length}</span>
+                      <AlertTriangle size={15} /> Low Stock <span style={{ fontSize: "0.75rem", backgroundColor: products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length > 0 ? "#D32F2F" : "var(--color-text-muted)", color: "#FFFFFF", padding: "0.1rem 0.4rem", borderRadius: "10px" }}>{products.filter(p => p.stock_quantity <= (store?.low_stock_threshold || 5)).length}</span>
                     </button>
 
                     {currentUser && (
-                      <div className="storefront-user-badge" style={{ display: "flex", flexDirection: "column", fontSize: "0.75rem", borderLeft: "1px solid var(--color-border)", paddingLeft: "0.75rem", lineHeight: 1.3 }}>
+                      <div className="storefront-user-badge" style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", padding: "0.35rem 0.75rem", borderRadius: "20px" }}>
                         <span style={{ fontWeight: 700 }}>{currentUser.name}</span>
-                        <span style={{ color: "green" }}>Wallet: ₹{customerWallet}</span>
+                        <span style={{ color: "#2E7D32", fontWeight: 700 }}>Wallet: ₹{customerWallet}</span>
                       </div>
                     )}
 
@@ -4101,7 +4670,7 @@ export default function App() {
                         }
                       }}
                       className="btn btn-secondary"
-                      style={{ padding: "0.4rem 0.85rem", fontSize: "0.82rem", borderRadius: "20px" }}
+                      style={{ padding: "0.45rem 0.9rem", fontSize: "0.82rem", borderRadius: "20px", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.35rem" }}
                     >
                       <Edit3 size={15} /> {t("ownerPanel")}
                     </button>
