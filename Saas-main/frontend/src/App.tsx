@@ -330,9 +330,27 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
 
 export default function App() {
   // Navigation / View State
-  const [view, setView] = useState<"builder" | "dashboard" | "storefront">("builder");
+  const [view, setView] = useState<"builder" | "dashboard" | "storefront" | "admin">("builder");
   const [activeTab, setActiveTab] = useState<"stock" | "billing" | "accounting" | "suppliers" | "customers" | "employees" | "store-settings" | "settings" | "analytics" | "orders" | "ai-insights" | "advanced-suite">("stock");
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  // Admin Panel States
+  const [adminTab, setAdminTab] = useState<"overview" | "pending" | "stores" | "users" | "emails">("overview");
+  const [adminStats, setAdminStats] = useState<{
+    total_stores: number;
+    pending_stores: number;
+    approved_stores: number;
+    total_users: number;
+    total_products: number;
+    total_sales_count: number;
+    total_revenue: number;
+  } | null>(null);
+  const [pendingStoresList, setPendingStoresList] = useState<any[]>([]);
+  const [allStoresList, setAllStoresList] = useState<any[]>([]);
+  const [allUsersList, setAllUsersList] = useState<any[]>([]);
+  const [emailLogsList, setEmailLogsList] = useState<any[]>([]);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminSearchQuery, setAdminSearchQuery] = useState("");
 
   // Auth User & Role State
   const [userRole, setUserRole] = useState<"Super Admin" | "Store Owner" | "Manager" | "Cashier" | "Customer">("Store Owner");
@@ -559,7 +577,9 @@ export default function App() {
         setCurrentUser(userData);
         setUserRole(userData.role);
         setIsOwnerVerified(true);
-        if (userData.store_id) {
+        if (userData.role === "Super Admin") {
+          setView("admin");
+        } else if (userData.store_id) {
           await loadStoreData(userData.store_id, userData.id, userData.role);
           setView("dashboard");
         }
@@ -570,6 +590,95 @@ export default function App() {
       alert(err.message || "Login failed. Please verify Mobile/Gmail and Password.");
     } finally {
       setOtpLoading(false);
+    }
+  };
+
+  // --- Admin Panel API Action Handlers ---
+  const fetchAdminData = async () => {
+    const currentToken = localStorage.getItem("token");
+    if (!currentToken) return;
+    setAdminLoading(true);
+    try {
+      const headers = { Authorization: `Bearer ${currentToken}` };
+      const [statsRes, pendingRes, storesRes, usersRes, emailsRes] = await Promise.all([
+        fetch(`${BACKEND_URL}/api/admin/stats`, { headers }),
+        fetch(`${BACKEND_URL}/api/admin/pending-stores`, { headers }),
+        fetch(`${BACKEND_URL}/api/admin/stores`, { headers }),
+        fetch(`${BACKEND_URL}/api/admin/users`, { headers }),
+        fetch(`${BACKEND_URL}/api/admin/email-logs`, { headers }),
+      ]);
+
+      if (statsRes.ok) setAdminStats(await statsRes.json());
+      if (pendingRes.ok) setPendingStoresList(await pendingRes.json());
+      if (storesRes.ok) setAllStoresList(await storesRes.json());
+      if (usersRes.ok) setAllUsersList(await usersRes.json());
+      if (emailsRes.ok) setEmailLogsList(await emailsRes.json());
+    } catch (e) {
+      console.error("Admin data fetch error:", e);
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (view === "admin") {
+      fetchAdminData();
+    }
+  }, [view]);
+
+  const handleApproveStore = async (storeId: number, storeName: string) => {
+    const currentToken = localStorage.getItem("token");
+    if (!currentToken) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/stores/${storeId}/approve`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${currentToken}` }
+      });
+      if (res.ok) {
+        alert(`✅ Mubarak ho! Store "${storeName}" has been APPROVED! Notification email has been sent to owner.`);
+        fetchAdminData();
+      } else {
+        const err = await res.json();
+        alert(err.detail || "Approval failed");
+      }
+    } catch (e) {
+      alert("Store approval failed");
+    }
+  };
+
+  const handleRejectStore = async (storeId: number, storeName: string) => {
+    if (!confirm(`Are you sure you want to reject store request for "${storeName}"?`)) return;
+    const currentToken = localStorage.getItem("token");
+    if (!currentToken) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/stores/${storeId}/reject`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${currentToken}` }
+      });
+      if (res.ok) {
+        alert(`Store "${storeName}" request rejected.`);
+        fetchAdminData();
+      }
+    } catch (e) {
+      alert("Rejection failed");
+    }
+  };
+
+  const handleDeleteStoreAdmin = async (storeId: number, storeName: string) => {
+    if (!confirm(`⚠️ PERMANENT DELETE: Delete store "${storeName}" completely?`)) return;
+    const currentToken = localStorage.getItem("token");
+    if (!currentToken) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/stores/${storeId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${currentToken}` }
+      });
+      if (res.ok) {
+        alert(`Store "${storeName}" deleted successfully.`);
+        fetchAdminData();
+      }
+    } catch (e) {
+      alert("Delete failed");
     }
   };
 
@@ -1911,6 +2020,22 @@ export default function App() {
           )}
 
           <div className="nav-links">
+            {(userRole === "Super Admin" || currentUser?.role === "Super Admin") && (
+              <button 
+                onClick={() => { setIsMobileNavOpen(false); setView("admin"); }}
+                className="btn btn-primary"
+                style={{
+                  backgroundColor: "var(--color-primary)",
+                  color: "#ffffff",
+                  borderRadius: "10px",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  border: "none"
+                }}
+              >
+                Admin Panel
+              </button>
+            )}
             {view === "builder" ? (
               store ? (
                 <button 
@@ -5570,6 +5695,346 @@ export default function App() {
               <span>Press <strong>Enter</strong> in quantity box to instantly update stock levels.</span>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* --- Admin Control Panel View --- */}
+      {view === "admin" && (
+        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "1.5rem" }}>
+          {/* Admin Header Banner */}
+          <div style={{
+            background: "linear-gradient(135deg, var(--color-primary) 0%, #6d2d2d 100%)",
+            color: "#ffffff",
+            padding: "1.75rem 2rem",
+            borderRadius: "16px",
+            marginBottom: "2rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "1rem",
+            boxShadow: "0 10px 25px -5px rgba(139, 58, 58, 0.25)"
+          }}>
+            <div>
+              <h2 style={{ margin: 0, fontWeight: 800, fontSize: "1.6rem", color: "#ffffff" }}>GenSaas Master Admin Panel</h2>
+              <p style={{ margin: "0.25rem 0 0 0", color: "#EAE4D8", fontSize: "0.9rem", opacity: 0.9 }}>
+                Store approvals, system metrics, data management & email logs control hub
+              </p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <button 
+                onClick={fetchAdminData} 
+                className="btn" 
+                style={{ padding: "0.5rem 1rem", fontSize: "0.85rem", borderRadius: "8px", color: "#ffffff", border: "1px solid rgba(255,255,255,0.3)", backgroundColor: "rgba(255,255,255,0.15)", fontWeight: 700 }}
+              >
+                Refresh Data
+              </button>
+              <div style={{ backgroundColor: "rgba(255, 255, 255, 0.2)", padding: "0.4rem 0.9rem", borderRadius: "20px", fontSize: "0.8rem", color: "#ffffff", fontWeight: 700 }}>
+                Logged in as Super Admin
+              </div>
+            </div>
+          </div>
+
+          {/* Admin Navigation Tabs */}
+          <div style={{ display: "flex", gap: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "1.5rem", overflowX: "auto" }}>
+            {[
+              { id: "overview", label: "Overview", count: null },
+              { id: "pending", label: "Pending Approvals", count: adminStats?.pending_stores || pendingStoresList.length },
+              { id: "stores", label: "All Stores", count: adminStats?.total_stores || allStoresList.length },
+              { id: "users", label: "Users Directory", count: adminStats?.total_users || allUsersList.length },
+              { id: "emails", label: "Email Logs", count: emailLogsList.length },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setAdminTab(tab.id as any)}
+                style={{
+                  padding: "0.75rem 1.25rem",
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  border: "none",
+                  background: "none",
+                  borderBottom: adminTab === tab.id ? "3px solid var(--color-primary)" : "3px solid transparent",
+                  color: adminTab === tab.id ? "var(--color-primary)" : "var(--color-text-muted)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {tab.label}
+                {tab.count !== null && tab.count > 0 && (
+                  <span style={{
+                    backgroundColor: tab.id === "pending" ? "var(--color-danger)" : "var(--color-neutral-container)",
+                    color: tab.id === "pending" ? "#ffffff" : "var(--color-text-dark)",
+                    fontSize: "0.75rem",
+                    padding: "0.15rem 0.55rem",
+                    borderRadius: "12px",
+                    fontWeight: 800
+                  }}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {adminLoading && (
+            <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-muted)" }}>
+              Loading Admin Data...
+            </div>
+          )}
+
+          {/* TAB 1: OVERVIEW */}
+          {!adminLoading && adminTab === "overview" && adminStats && (
+            <div>
+              {/* Stat Cards Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.25rem", marginBottom: "2rem" }}>
+                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "1.25rem", borderRadius: "14px", border: "1px solid var(--color-border)", boxShadow: "var(--shadow-sm)" }}>
+                  <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", fontWeight: 700 }}>TOTAL STORES</span>
+                  <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-text-dark)", margin: "0.3rem 0" }}>{adminStats.total_stores}</div>
+                  <span style={{ fontSize: "0.78rem", color: "var(--color-success)", fontWeight: 600 }}>{adminStats.approved_stores} Approved Stores</span>
+                </div>
+
+                <div style={{ backgroundColor: "var(--color-neutral-container)", padding: "1.25rem", borderRadius: "14px", border: "1px solid var(--color-border)", boxShadow: "var(--shadow-sm)" }}>
+                  <span style={{ fontSize: "0.8rem", color: "var(--color-danger)", fontWeight: 700 }}>PENDING APPROVALS</span>
+                  <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-danger)", margin: "0.3rem 0" }}>{adminStats.pending_stores}</div>
+                  <span style={{ fontSize: "0.78rem", color: "var(--color-danger)", fontWeight: 600 }}>Action Required</span>
+                </div>
+
+                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "1.25rem", borderRadius: "14px", border: "1px solid var(--color-border)", boxShadow: "var(--shadow-sm)" }}>
+                  <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", fontWeight: 700 }}>REGISTERED USERS</span>
+                  <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-text-dark)", margin: "0.3rem 0" }}>{adminStats.total_users}</div>
+                  <span style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>Across platform</span>
+                </div>
+
+                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "1.25rem", borderRadius: "14px", border: "1px solid var(--color-border)", boxShadow: "var(--shadow-sm)" }}>
+                  <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", fontWeight: 700 }}>TOTAL REVENUE</span>
+                  <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-primary)", margin: "0.3rem 0" }}>₹{adminStats.total_revenue.toLocaleString()}</div>
+                  <span style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>{adminStats.total_sales_count} total sales</span>
+                </div>
+              </div>
+
+              {/* Pending Approvals Quick Alert Card */}
+              {adminStats.pending_stores > 0 && (
+                <div style={{ backgroundColor: "var(--color-neutral-container)", border: "1px solid var(--color-border)", padding: "1.25rem 1.5rem", borderRadius: "12px", marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <h4 style={{ margin: 0, color: "var(--color-text-dark)", fontWeight: 800 }}>{adminStats.pending_stores} Store Request(s) Waiting For Approval</h4>
+                    <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>Approve requests to automatically notify store owners via email and grant them store access.</p>
+                  </div>
+                  <button onClick={() => setAdminTab("pending")} className="btn btn-primary" style={{ backgroundColor: "var(--color-primary)", padding: "0.5rem 1.2rem", borderRadius: "8px", fontWeight: 700, fontSize: "0.85rem" }}>
+                    Review Pending ({adminStats.pending_stores})
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: PENDING APPROVALS */}
+          {!adminLoading && adminTab === "pending" && (
+            <div>
+              <h3 style={{ fontWeight: 800, fontSize: "1.25rem", marginBottom: "1rem", color: "var(--color-text-dark)" }}>Store Creation Requests Pending Approval</h3>
+              {pendingStoresList.length === 0 ? (
+                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "3rem", borderRadius: "12px", textAlign: "center", border: "1px solid var(--color-border)" }}>
+                  <h4 style={{ margin: 0, fontWeight: 700, color: "var(--color-text-dark)" }}>No Pending Approvals</h4>
+                  <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem", margin: "0.25rem 0 0 0" }}>All store requests have been reviewed and approved.</p>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: "1rem" }}>
+                  {pendingStoresList.map(st => (
+                    <div key={st.id} style={{ backgroundColor: "var(--color-bg-card)", padding: "1.25rem 1.5rem", borderRadius: "12px", border: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <h4 style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: "var(--color-text-dark)" }}>{st.name}</h4>
+                          <span style={{ backgroundColor: "#FFF3E0", color: "#E65100", fontSize: "0.72rem", padding: "0.15rem 0.5rem", borderRadius: "10px", fontWeight: 800 }}>PENDING</span>
+                        </div>
+                        <p style={{ margin: "0.25rem 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
+                          URL Slug: <code>{st.slug}</code> | Email: <strong>{st.owner_email || "Not specified"}</strong> | Owner: {st.owner_name || "N/A"}
+                        </p>
+                        <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>Requested on: {new Date(st.created_at).toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: "0.75rem" }}>
+                        <button 
+                          onClick={() => handleApproveStore(st.id, st.name)}
+                          className="btn btn-primary"
+                          style={{ backgroundColor: "var(--color-success)", color: "#ffffff", padding: "0.5rem 1.25rem", borderRadius: "8px", fontWeight: 700, fontSize: "0.85rem", border: "none" }}
+                        >
+                          Approve & Send Email
+                        </button>
+                        <button 
+                          onClick={() => handleRejectStore(st.id, st.name)}
+                          className="btn btn-secondary"
+                          style={{ color: "var(--color-danger)", borderColor: "var(--color-border)", padding: "0.5rem 1rem", borderRadius: "8px", fontWeight: 700, fontSize: "0.85rem" }}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: ALL STORES */}
+          {!adminLoading && adminTab === "stores" && (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "1rem" }}>
+                <h3 style={{ fontWeight: 800, fontSize: "1.25rem", margin: 0, color: "var(--color-text-dark)" }}>All Platform Stores ({allStoresList.length})</h3>
+                <input 
+                  type="text"
+                  placeholder="Search stores by name or slug..."
+                  value={adminSearchQuery}
+                  onChange={(e) => setAdminSearchQuery(e.target.value)}
+                  style={{ padding: "0.45rem 0.85rem", borderRadius: "8px", border: "1px solid var(--color-border)", fontSize: "0.85rem", width: "260px" }}
+                />
+              </div>
+
+              <div style={{ overflowX: "auto", backgroundColor: "var(--color-bg-card)", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.85rem" }}>
+                  <thead>
+                    <tr style={{ backgroundColor: "var(--color-neutral-container)", borderBottom: "1px solid var(--color-border)" }}>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>ID</th>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Store Name</th>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Slug</th>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Owner Email</th>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Status</th>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Products</th>
+                      <th style={{ padding: "0.75rem 1rem", textAlign: "right", color: "var(--color-text-dark)" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allStoresList
+                      .filter(s => s.name?.toLowerCase().includes(adminSearchQuery.toLowerCase()) || s.slug?.toLowerCase().includes(adminSearchQuery.toLowerCase()))
+                      .map(s => (
+                        <tr key={s.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
+                          <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>#{s.id}</td>
+                          <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>{s.name}</td>
+                          <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-muted)" }}><code>{s.slug}</code></td>
+                          <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>{s.owner_email || "N/A"}</td>
+                          <td style={{ padding: "0.75rem 1rem" }}>
+                            {s.is_approved || s.status === "approved" ? (
+                              <span style={{ backgroundColor: "#E8F5E9", color: "#2E7D32", fontSize: "0.72rem", padding: "0.2rem 0.6rem", borderRadius: "12px", fontWeight: 800 }}>Approved</span>
+                            ) : s.status === "rejected" ? (
+                              <span style={{ backgroundColor: "#FFEBEE", color: "#C62828", fontSize: "0.72rem", padding: "0.2rem 0.6rem", borderRadius: "12px", fontWeight: 800 }}>Rejected</span>
+                            ) : (
+                              <span style={{ backgroundColor: "#FFF3E0", color: "#E65100", fontSize: "0.72rem", padding: "0.2rem 0.6rem", borderRadius: "12px", fontWeight: 800 }}>Pending</span>
+                            )}
+                          </td>
+                          <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>{s.products?.length || 0}</td>
+                          <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>
+                            <div style={{ display: "flex", gap: "0.4rem", justifyContent: "flex-end" }}>
+                              {(!s.is_approved || s.status !== "approved") && (
+                                <button onClick={() => handleApproveStore(s.id, s.name)} className="btn btn-primary" style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem", backgroundColor: "var(--color-success)", color: "#fff", borderRadius: "6px", border: "none" }}>
+                                  Approve
+                                </button>
+                              )}
+                              <button onClick={() => handleDeleteStoreAdmin(s.id, s.name)} className="btn btn-secondary" style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem", color: "var(--color-danger)", borderColor: "var(--color-border)", borderRadius: "6px" }}>
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: USERS DIRECTORY */}
+          {!adminLoading && adminTab === "users" && (
+            <div>
+              <h3 style={{ fontWeight: 800, fontSize: "1.25rem", marginBottom: "1rem", color: "var(--color-text-dark)" }}>Registered System Users ({allUsersList.length})</h3>
+              <div style={{ overflowX: "auto", backgroundColor: "var(--color-bg-card)", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.85rem" }}>
+                  <thead>
+                    <tr style={{ backgroundColor: "var(--color-neutral-container)", borderBottom: "1px solid var(--color-border)" }}>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>ID</th>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Name</th>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Email / Identifier</th>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Phone</th>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Role</th>
+                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Linked Store</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allUsersList.map(u => (
+                      <tr key={u.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
+                        <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>#{u.id}</td>
+                        <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>{u.name || "N/A"}</td>
+                        <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>{u.email}</td>
+                        <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>{u.phone || "N/A"}</td>
+                        <td style={{ padding: "0.75rem 1rem" }}>
+                          <span style={{
+                            backgroundColor: u.role === "Super Admin" ? "var(--color-neutral-container)" : "var(--color-neutral-container)",
+                            color: u.role === "Super Admin" ? "var(--color-primary)" : "var(--color-text-dark)",
+                            padding: "0.2rem 0.6rem",
+                            borderRadius: "12px",
+                            fontWeight: 700,
+                            fontSize: "0.75rem"
+                          }}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-muted)" }}>
+                          {u.store_name ? `${u.store_name} (#${u.store_id})` : "None"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: EMAIL NOTIFICATION LOGS */}
+          {!adminLoading && adminTab === "emails" && (
+            <div>
+              <h3 style={{ fontWeight: 800, fontSize: "1.25rem", marginBottom: "1rem", color: "var(--color-text-dark)" }}>Sent Email Notifications Log ({emailLogsList.length})</h3>
+              {emailLogsList.length === 0 ? (
+                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "3rem", borderRadius: "12px", textAlign: "center", border: "1px solid var(--color-border)" }}>
+                  <p style={{ color: "var(--color-text-muted)" }}>No email notifications sent yet.</p>
+                </div>
+              ) : (
+                <div style={{ overflowX: "auto", backgroundColor: "var(--color-bg-card)", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.85rem" }}>
+                    <thead>
+                      <tr style={{ backgroundColor: "var(--color-neutral-container)", borderBottom: "1px solid var(--color-border)" }}>
+                        <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>ID</th>
+                        <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Recipient Email</th>
+                        <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Subject</th>
+                        <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Status</th>
+                        <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Sent At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {emailLogsList.map(log => (
+                        <tr key={log.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
+                          <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>#{log.id}</td>
+                          <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>{log.to_email}</td>
+                          <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>{log.subject}</td>
+                          <td style={{ padding: "0.75rem 1rem" }}>
+                            <span style={{
+                              backgroundColor: log.status === "sent" ? "#E8F5E9" : "#FFF3E0",
+                              color: log.status === "sent" ? "#2E7D32" : "#E65100",
+                              padding: "0.2rem 0.6rem",
+                              borderRadius: "12px",
+                              fontWeight: 700,
+                              fontSize: "0.75rem"
+                            }}>
+                              {log.status.toUpperCase()}
+                            </span>
+                          </td>
+                          <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-muted)" }}>{new Date(log.sent_at).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

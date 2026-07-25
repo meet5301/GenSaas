@@ -127,6 +127,9 @@ class StoreBase(BaseModel):
     stock_alerts_enabled: Optional[bool] = None
     low_stock_threshold: Optional[int] = None
     procurement_list: Optional[str] = "[]"
+    is_approved: Optional[bool] = False
+    status: Optional[str] = "pending"
+    owner_email: Optional[str] = None
 
 class StoreCreate(StoreBase):
     slug: str
@@ -147,11 +150,17 @@ class StoreUpdate(BaseModel):
     stock_alerts_enabled: Optional[bool] = None
     low_stock_threshold: Optional[int] = None
     procurement_list: Optional[str] = None
+    is_approved: Optional[bool] = None
+    status: Optional[str] = None
+    owner_email: Optional[str] = None
 
 class StoreResponse(StoreBase):
     id: int
     slug: str
     created_at: datetime
+    is_approved: bool = False
+    status: str = "pending"
+    owner_email: Optional[str] = None
     products: List[ProductResponse] = []
     suppliers: List[SupplierResponse] = []
     employees: List[EmployeeResponse] = []
@@ -475,4 +484,28 @@ class DashboardSummaryResponse(BaseModel):
     referral: Optional[ReferralStatsResponse] = None
     unlocked_modules: List[ModuleAccessResponse]
     recent_transactions: List[TransactionResponse]
+
+
+class EmailLogResponse(BaseModel):
+    id: int
+    to_email: str
+    subject: str
+    body: str
+    status: str
+    store_id: Optional[int] = None
+    sent_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdminStatsResponse(BaseModel):
+    total_stores: int
+    pending_stores: int
+    approved_stores: int
+    total_users: int
+    total_products: int
+    total_sales_count: int
+    total_revenue: float
+
 

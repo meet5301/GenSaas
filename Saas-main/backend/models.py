@@ -25,6 +25,10 @@ class Store(Base):
     stock_alerts_enabled = Column(Boolean, default=True)
     low_stock_threshold = Column(Integer, default=5)
     
+    is_approved = Column(Boolean, default=False)
+    status = Column(String, default="pending")  # "pending", "approved", "rejected"
+    owner_email = Column(String, nullable=True)
+
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     procurement_list = Column(String, default="[]")
 
@@ -310,4 +314,17 @@ class RefreshToken(Base):
     token = Column(String, unique=True, index=True)
     expires_at = Column(DateTime)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class EmailLog(Base):
+    __tablename__ = "email_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    to_email = Column(String, index=True)
+    subject = Column(String)
+    body = Column(String)
+    status = Column(String, default="sent")  # "sent", "failed", "simulated"
+    store_id = Column(Integer, nullable=True)
+    sent_at = Column(DateTime, default=datetime.datetime.utcnow)
+
 

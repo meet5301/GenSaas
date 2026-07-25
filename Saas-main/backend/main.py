@@ -14,7 +14,8 @@ from fastapi.responses import FileResponse
 import models
 import schemas
 import generator
-from database import engine, Base, get_db
+import email_service
+from database import engine, Base, get_db, SessionLocal
 from auth import (
     hash_password, verify_password,
     create_access_token, create_refresh_token,
@@ -28,20 +29,182 @@ Base.metadata.create_all(bind=engine)
 def auto_migrate_db_schema():
     from sqlalchemy import text
     columns_to_add = [
-        ("bonus_claimed", "BOOLEAN DEFAULT FALSE"),
-        ("referral_code", "VARCHAR"),
-        ("referred_by_code", "VARCHAR"),
-        ("referral_count", "INTEGER DEFAULT 0"),
+        ("users", "bonus_claimed", "BOOLEAN DEFAULT FALSE"),
+        ("users", "referral_code", "VARCHAR"),
+        ("users", "referred_by_code", "VARCHAR"),
+        ("users", "referral_count", "INTEGER DEFAULT 0"),
+        ("stores", "is_approved", "BOOLEAN DEFAULT TRUE"),
+        ("stores", "status", "VARCHAR DEFAULT 'approved'"),
+        ("stores", "owner_email", "VARCHAR"),
     ]
+    for tbl, col_name, col_type in columns_to_add:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN {col_name} {col_type};"))
+                conn.commit()
+        except Exception:
+            pass
+
+    # Seed default Super Admin account (admin123@gmail.com / 1234567890 / Meet@5301)
     try:
-        with engine.begin() as conn:
-            for col_name, col_type in columns_to_add:
-                try:
-                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type};"))
-                except Exception:
-                    pass
-    except Exception as e:
-        print(f"Auto-migration note: {e}")
+        db = SessionLocal()
+        users = db.query(models.User).filter(
+            (models.User.email.in_(["admin123@gmail.com", "admin123", "admin123@admin.com"])) |
+            (models.User.phone.in_(["1234567890", "8238005301", "0000000000"])) |
+            (models.User.role == "Super Admin")
+        ).all()
+
+        if users:
+            primary_admin = users[0]
+            for extra_u in users[1:]:
+                db.delete(extra_u)
+            db.commit()
+
+            primary_admin.name = "Super Admin"
+            primary_admin.email = "admin123@gmail.com"
+            primary_admin.phone = "1234567890"
+            primary_admin.role = "Super Admin"
+            primary_admin.password_hash = hash_password("Meet@5301")
+            db.commit()
+            print("[SEED SUCCESS] Super Admin updated: email 'admin123@gmail.com', phone '1234567890', password 'Meet@5301'")
+        else:
+            primary_admin = models.User(
+                name="Super Admin",
+                email="admin123@gmail.com",
+                phone="1234567890",
+                role="Super Admin",
+                password_hash=hash_password("Meet@5301")
+            )
+            db.add(primary_admin)
+            db.commit()
+            print("[SEED SUCCESS] Super Admin created: email 'admin123@gmail.com', phone '1234567890', password 'Meet@5301'")
+        db.close()
+    except Exception as err:
+        print(f"[SEED ERROR] Failed to seed admin user: {err}")
+
+    # Seed demo data for Admin Panel (Pending Stores, Approved Stores, Products, Sales, Email Logs)
+    try:
+        db = SessionLocal()
+        pending_count = db.query(models.Store).filter(models.Store.status == "pending").count()
+        if pending_count < 3:
+            pending_stores = [
+                {
+                    "name": "Apex Tech & Electronics",
+                    "slug": "apex-tech-electronics",
+                    "owner_name": "Suresh Kumar",
+                    "owner_email": "suresh.apex@gmail.com",
+                    "phone": "9876543210",
+                    "address": "Shop #14, MG Road, Bengaluru",
+                    "description": "Retailer of premium electronics, smartphones, and accessories",
+                    "is_approved": False,
+                    "status": "pending"
+                },
+                {
+                    "name": "Fresh Organic Farmers Market",
+                    "slug": "fresh-organic-farmers-market",
+                    "owner_name": "Priya Sharma",
+                    "owner_email": "priya.fresh@gmail.com",
+                    "phone": "9812345678",
+                    "address": "Plot 42, Jubilee Hills, Hyderabad",
+                    "description": "Farm-fresh organic fruits, vegetables, and natural products",
+                    "is_approved": False,
+                    "status": "pending"
+                },
+                {
+                    "name": "Royal Sweets & Bakery",
+                    "slug": "royal-sweets-bakery",
+                    "owner_name": "Vikram Singh",
+                    "owner_email": "vikram.royal@gmail.com",
+                    "phone": "9765432109",
+                    "address": "Main Bazaar, Jaipur",
+                    "description": "Traditional Indian sweets, savories, and artisanal bakery items",
+                    "is_approved": False,
+                    "status": "pending"
+                }
+            ]
+            for sdata in pending_stores:
+                if not db.query(models.Store).filter(models.Store.slug == sdata["slug"]).first():
+                    st = models.Store(**sdata)
+                    db.add(st)
+            db.commit()
+            print("[SEED DEMO] Seeded 3 sample pending store requests.")
+
+        approved_count = db.query(models.Store).filter(models.Store.is_approved == True).count()
+        if approved_count == 0:
+            approved_store = models.Store(
+                name="Meet Kirana & General Store",
+                slug="meet-kirana-store",
+                owner_name="Meet Patel",
+                owner_email="meet.store@gmail.com",
+                phone="9988776655",
+                address="Sector 17, Gandhinagar",
+                description="Daily grocery, dairy, and essential household products",
+                is_approved=True,
+                status="approved"
+            )
+            db.add(approved_store)
+            db.commit()
+            db.refresh(approved_store)
+
+            products = [
+                {"name": "Fortune Refined Oil 1L", "category": "Oil & Ghee", "price": 145.0, "purchase_cost": 120.0, "stock_quantity": 45, "unit": "packet"},
+                {"name": "Aashirvaad Shuddh Atta 5kg", "category": "Flour", "price": 260.0, "purchase_cost": 220.0, "stock_quantity": 30, "unit": "bag"},
+                {"name": "Tata Iodized Salt 1kg", "category": "Spices & Salt", "price": 28.0, "purchase_cost": 22.0, "stock_quantity": 100, "unit": "packet"},
+                {"name": "Amul Pasteurised Butter 500g", "category": "Dairy", "price": 275.0, "purchase_cost": 240.0, "stock_quantity": 18, "unit": "box"},
+                {"name": "Parle-G Gold Biscuits 100g", "category": "Snacks", "price": 10.0, "purchase_cost": 8.0, "stock_quantity": 150, "unit": "packet"},
+                {"name": "Surf Excel Easy Wash 1kg", "category": "Cleaning", "price": 135.0, "purchase_cost": 110.0, "stock_quantity": 25, "unit": "packet"}
+            ]
+            for p in products:
+                db.add(models.Product(store_id=approved_store.id, **p))
+            
+            sales = [
+                {"customer_name": "Amit Kumar", "customer_phone": "9876500001", "total_amount": 450.0, "payment_method": "UPI", "items_summary": "Atta, Oil, Salt"},
+                {"customer_name": "Neha Gupta", "customer_phone": "9876500002", "total_amount": 1280.0, "payment_method": "Cash", "items_summary": "Monthly Ration Pack"},
+                {"customer_name": "Rohan Verma", "customer_phone": "9876500003", "total_amount": 820.0, "payment_method": "Card", "items_summary": "Butter, Biscuits, Oil"}
+            ]
+            for s in sales:
+                db.add(models.Sale(store_id=approved_store.id, **s))
+            db.commit()
+            print("[SEED DEMO] Seeded approved store, products & sales.")
+
+        if db.query(models.User).count() < 4:
+            sample_users = [
+                {"name": "Suresh Kumar", "email": "suresh.apex@gmail.com", "phone": "9876543210", "role": "Store Owner", "password_hash": hash_password("User@123")},
+                {"name": "Priya Sharma", "email": "priya.fresh@gmail.com", "phone": "9812345678", "role": "Store Owner", "password_hash": hash_password("User@123")},
+                {"name": "Rahul Verma", "email": "rahul.cashier@gmail.com", "phone": "9800001122", "role": "Cashier", "password_hash": hash_password("User@123")},
+                {"name": "Amit Customer", "email": "amit.customer@gmail.com", "phone": "9876500001", "role": "Customer", "password_hash": hash_password("User@123")}
+            ]
+            for udata in sample_users:
+                if not db.query(models.User).filter(models.User.email == udata["email"]).first():
+                    db.add(models.User(**udata))
+            db.commit()
+            print("[SEED DEMO] Seeded sample users.")
+
+        if db.query(models.EmailLog).count() == 0:
+            sample_emails = [
+                {
+                    "to_email": "meet.store@gmail.com",
+                    "subject": "Mubarak ho! Aapka Store 'Meet Kirana & General Store' Approve Ho Gaya Hai!",
+                    "body": "Store approval notification email.",
+                    "status": "sent",
+                    "sent_at": datetime.utcnow()
+                },
+                {
+                    "to_email": "owner@citymart.com",
+                    "subject": "Mubarak ho! Aapka Store 'City Supermarket POS' Approve Ho Gaya Hai!",
+                    "body": "Store approval notification email.",
+                    "status": "sent",
+                    "sent_at": datetime.utcnow()
+                }
+            ]
+            for em in sample_emails:
+                db.add(models.EmailLog(**em))
+            db.commit()
+            print("[SEED DEMO] Seeded sample email logs.")
+
+        db.close()
+    except Exception as err:
+        print(f"[SEED DEMO ERROR] {err}")
 
 auto_migrate_db_schema()
 
@@ -114,9 +277,14 @@ def register(request: Request, user_in: schemas.UserCreate, db: Session = Depend
 @app.post("/api/auth/login", response_model=schemas.Token)
 @limiter.limit("20/minute")
 def login(request: Request, credentials: schemas.UserLogin, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == credentials.email).first()
+    email_clean = credentials.email.strip()
+    user = db.query(models.User).filter(
+        (models.User.email == credentials.email) |
+        (models.User.email == email_clean) |
+        ((models.User.role == "Super Admin") if email_clean in ["admin123", "admin123@admin.com"] else False)
+    ).first()
     if not user or not verify_password(credentials.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email/username or password")
 
     access_token = create_access_token({"id": user.id, "email": user.email, "role": user.role})
     raw_refresh = create_refresh_token()
@@ -446,6 +614,14 @@ def login_mobile(request: Request, body: schemas.MobileLoginRequest, db: Session
         raise HTTPException(status_code=400, detail="Please enter your Mobile Phone Number or Gmail address to log in.")
 
     user = db.query(models.User).filter(or_(*conditions)).first()
+
+    # Super Admin check for admin credentials (admin123@gmail.com / 1234567890)
+    if not user:
+        if (
+            email_clean in ["admin123@gmail.com", "admin123"] or
+            phone_clean in ["1234567890"]
+        ):
+            user = db.query(models.User).filter(models.User.role == "Super Admin").first()
 
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid Mobile Number/Gmail or Password.")
@@ -805,7 +981,12 @@ def generate_store(request: schemas.GenerateRequest, db: Session = Depends(get_d
         counter += 1
     store_info["slug"] = slug
     
-    # Create Store in DB
+    # Create Store in DB (Pending Admin Approval)
+    store_info["is_approved"] = False
+    store_info["status"] = "pending"
+    if request.email:
+        store_info["owner_email"] = request.email
+    
     db_store = models.Store(**store_info)
     db.add(db_store)
     db.commit()
@@ -835,7 +1016,10 @@ def create_store(store: schemas.StoreCreate, db: Session = Depends(get_db)):
     if db_store:
         raise HTTPException(status_code=400, detail="Store URL slug already registered.")
     
-    new_store = models.Store(**store.model_dump())
+    store_dict = store.model_dump()
+    store_dict["is_approved"] = False
+    store_dict["status"] = "pending"
+    new_store = models.Store(**store_dict)
     db.add(new_store)
     db.commit()
     db.refresh(new_store)
@@ -1916,6 +2100,145 @@ def get_ai_insights(store_id: int, db: Session = Depends(get_db)):
         },
         "insights": insights,
     }
+
+
+# --- Admin Panel Dedicated API Routes ---
+
+@app.get("/api/admin/stats", response_model=schemas.AdminStatsResponse)
+def get_admin_stats(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role != "Super Admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    
+    total_stores = db.query(models.Store).count()
+    pending_stores = db.query(models.Store).filter(models.Store.status == "pending").count()
+    approved_stores = db.query(models.Store).filter(models.Store.is_approved == True).count()
+    total_users = db.query(models.User).count()
+    total_products = db.query(models.Product).count()
+    sales = db.query(models.Sale).all()
+    total_sales_count = len(sales)
+    total_revenue = sum([s.total_amount for s in sales if s.total_amount])
+
+    return {
+        "total_stores": total_stores,
+        "pending_stores": pending_stores,
+        "approved_stores": approved_stores,
+        "total_users": total_users,
+        "total_products": total_products,
+        "total_sales_count": total_sales_count,
+        "total_revenue": total_revenue,
+    }
+
+
+@app.get("/api/admin/pending-stores", response_model=List[schemas.StoreResponse])
+def get_pending_stores(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role != "Super Admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    return db.query(models.Store).filter(models.Store.status == "pending").order_by(models.Store.created_at.desc()).all()
+
+
+@app.get("/api/admin/stores", response_model=List[schemas.StoreResponse])
+def get_all_stores_admin(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role != "Super Admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    return db.query(models.Store).order_by(models.Store.created_at.desc()).all()
+
+
+@app.post("/api/admin/stores/{store_id}/approve", response_model=schemas.StoreResponse)
+def approve_store(store_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role != "Super Admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    
+    store = db.query(models.Store).filter(models.Store.id == store_id).first()
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    
+    store.is_approved = True
+    store.status = "approved"
+    db.commit()
+    db.refresh(store)
+
+    # Determine recipient email for confirmation message
+    target_email = store.owner_email
+    if not target_email:
+        owner_user = db.query(models.User).filter(models.User.store_id == store.id).first()
+        if owner_user and owner_user.email:
+            target_email = owner_user.email
+    if not target_email:
+        target_email = "owner@store.com"
+    
+    # Send email notification
+    email_service.send_store_approval_email(
+        to_email=target_email,
+        store_name=store.name,
+        store_slug=store.slug,
+        store_id=store.id,
+        db=db
+    )
+    
+    return store
+
+
+@app.post("/api/admin/stores/{store_id}/reject", response_model=schemas.StoreResponse)
+def reject_store(store_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role != "Super Admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    
+    store = db.query(models.Store).filter(models.Store.id == store_id).first()
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    
+    store.is_approved = False
+    store.status = "rejected"
+    db.commit()
+    db.refresh(store)
+    return store
+
+
+@app.delete("/api/admin/stores/{store_id}")
+def delete_store_admin(store_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role != "Super Admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    
+    store = db.query(models.Store).filter(models.Store.id == store_id).first()
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    
+    db.delete(store)
+    db.commit()
+    return {"message": "Store deleted successfully"}
+
+
+@app.get("/api/admin/users")
+def get_all_users_admin(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role != "Super Admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    
+    users = db.query(models.User).order_by(models.User.created_at.desc()).all()
+    result = []
+    for u in users:
+        store_name = None
+        if u.store_id:
+            st = db.query(models.Store).filter(models.Store.id == u.store_id).first()
+            if st:
+                store_name = st.name
+        result.append({
+            "id": u.id,
+            "name": u.name,
+            "email": u.email,
+            "phone": u.phone,
+            "role": u.role,
+            "store_id": u.store_id,
+            "store_name": store_name,
+            "created_at": u.created_at
+        })
+    return result
+
+
+@app.get("/api/admin/email-logs", response_model=List[schemas.EmailLogResponse])
+def get_email_logs(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role != "Super Admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    return db.query(models.EmailLog).order_by(models.EmailLog.sent_at.desc()).all()
 
 
 # Serve React Frontend Build
