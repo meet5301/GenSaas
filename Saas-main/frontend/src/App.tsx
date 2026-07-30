@@ -27,7 +27,13 @@ import {
   Menu,
   X,
   LayoutList,
-  Grid
+  Grid,
+  Search,
+  CheckCircle,
+  Mail,
+  Shield,
+  Activity,
+  Building
 } from "lucide-react";
 
 // Types matching backend Pydantic models
@@ -351,6 +357,12 @@ export default function App() {
   const [emailLogsList, setEmailLogsList] = useState<any[]>([]);
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminSearchQuery, setAdminSearchQuery] = useState("");
+  const [adminStatusFilter, setAdminStatusFilter] = useState<"all" | "approved" | "pending" | "rejected">("all");
+  const [adminRoleFilter, setAdminRoleFilter] = useState<string>("all");
+  const [adminEmailStatusFilter, setAdminEmailStatusFilter] = useState<string>("all");
+  const [adminViewMode, setAdminViewMode] = useState<"table" | "cards">("table");
+  const [selectedAdminItem, setSelectedAdminItem] = useState<any | null>(null);
+  const [adminModalType, setAdminModalType] = useState<"store" | "user" | "email" | null>(null);
 
   // Auth User & Role State
   const [userRole, setUserRole] = useState<"Super Admin" | "Store Owner" | "Manager" | "Cashier" | "Customer">("Store Owner");
@@ -5699,179 +5711,431 @@ export default function App() {
       )}
 
       {/* --- Admin Control Panel View --- */}
+      {/* --- Dynamic & Responsive Master Admin Control Panel View --- */}
       {view === "admin" && (
-        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "1.5rem" }}>
-          {/* Admin Header Banner */}
-          <div style={{
-            background: "linear-gradient(135deg, var(--color-primary) 0%, #6d2d2d 100%)",
-            color: "#ffffff",
-            padding: "1.75rem 2rem",
-            borderRadius: "16px",
-            marginBottom: "2rem",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "1rem",
-            boxShadow: "0 10px 25px -5px rgba(139, 58, 58, 0.25)"
-          }}>
+        <div className="master-admin-container">
+          {/* Admin Glassmorphism Header Banner */}
+          <div className="admin-header-banner">
             <div>
-              <h2 style={{ margin: 0, fontWeight: 800, fontSize: "1.6rem", color: "#ffffff" }}>GenSaas Master Admin Panel</h2>
-              <p style={{ margin: "0.25rem 0 0 0", color: "#EAE4D8", fontSize: "0.9rem", opacity: 0.9 }}>
-                Store approvals, system metrics, data management & email logs control hub
+              <div className="admin-header-title">
+                <Shield size={28} style={{ color: "#f87171" }} />
+                <h2>GenSaas Master Admin Panel</h2>
+              </div>
+              <p className="admin-header-subtitle">
+                <span>Store Approvals, System Metrics & Centralized Operations Hub</span>
+                <span className="admin-live-pulse">
+                  <span className="admin-live-dot"></span> System Live
+                </span>
               </p>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div className="admin-header-actions">
               <button 
                 onClick={fetchAdminData} 
-                className="btn" 
-                style={{ padding: "0.5rem 1rem", fontSize: "0.85rem", borderRadius: "8px", color: "#ffffff", border: "1px solid rgba(255,255,255,0.3)", backgroundColor: "rgba(255,255,255,0.15)", fontWeight: 700 }}
+                className={`admin-btn-refresh ${adminLoading ? "spinning" : ""}`}
+                title="Refresh latest platform data"
               >
-                Refresh Data
+                <RefreshCw size={16} />
+                <span>{adminLoading ? "Refreshing..." : "Refresh Data"}</span>
               </button>
-              <div style={{ backgroundColor: "rgba(255, 255, 255, 0.2)", padding: "0.4rem 0.9rem", borderRadius: "20px", fontSize: "0.8rem", color: "#ffffff", fontWeight: 700 }}>
-                Logged in as Super Admin
+              <div className="admin-user-tag">
+                <User size={15} style={{ color: "#38bdf8" }} />
+                <span>Super Admin</span>
               </div>
             </div>
           </div>
 
           {/* Admin Navigation Tabs */}
-          <div style={{ display: "flex", gap: "0.5rem", borderBottom: "2px solid var(--color-border)", marginBottom: "1.5rem", overflowX: "auto" }}>
+          <div className="admin-tabs-nav">
             {[
-              { id: "overview", label: "Overview", count: null },
-              { id: "pending", label: "Pending Approvals", count: adminStats?.pending_stores || pendingStoresList.length },
-              { id: "stores", label: "All Stores", count: adminStats?.total_stores || allStoresList.length },
-              { id: "users", label: "Users Directory", count: adminStats?.total_users || allUsersList.length },
-              { id: "emails", label: "Email Logs", count: emailLogsList.length },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setAdminTab(tab.id as any)}
-                style={{
-                  padding: "0.75rem 1.25rem",
-                  fontWeight: 700,
-                  fontSize: "0.9rem",
-                  border: "none",
-                  background: "none",
-                  borderBottom: adminTab === tab.id ? "3px solid var(--color-primary)" : "3px solid transparent",
-                  color: adminTab === tab.id ? "var(--color-primary)" : "var(--color-text-muted)",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  whiteSpace: "nowrap"
-                }}
-              >
-                {tab.label}
-                {tab.count !== null && tab.count > 0 && (
-                  <span style={{
-                    backgroundColor: tab.id === "pending" ? "var(--color-danger)" : "var(--color-neutral-container)",
-                    color: tab.id === "pending" ? "#ffffff" : "var(--color-text-dark)",
-                    fontSize: "0.75rem",
-                    padding: "0.15rem 0.55rem",
-                    borderRadius: "12px",
-                    fontWeight: 800
-                  }}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
+              { id: "overview", label: "Overview", icon: Activity, count: null },
+              { id: "pending", label: "Pending Approvals", icon: AlertTriangle, count: adminStats?.pending_stores || pendingStoresList.length },
+              { id: "stores", label: "All Stores", icon: StoreIcon, count: adminStats?.total_stores || allStoresList.length },
+              { id: "users", label: "Users Directory", icon: Users, count: adminStats?.total_users || allUsersList.length },
+              { id: "emails", label: "Email Logs", icon: Mail, count: emailLogsList.length },
+            ].map(tab => {
+              const TabIcon = tab.icon;
+              const isPending = tab.id === "pending";
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setAdminTab(tab.id as any)}
+                  className={`admin-tab-btn ${adminTab === tab.id ? "active" : ""}`}
+                >
+                  <TabIcon size={18} />
+                  <span>{tab.label}</span>
+                  {tab.count !== null && tab.count > 0 && (
+                    <span className={`admin-tab-badge ${isPending ? "badge-pending" : "badge-default"}`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          {adminLoading && (
-            <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-muted)" }}>
-              Loading Admin Data...
+          {/* Dynamic Controls Bar (Search, Filters & Layout Toggle) */}
+          {adminTab !== "overview" && (
+            <div className="admin-controls-bar">
+              <div className="admin-search-wrapper">
+                <Search size={16} className="admin-search-icon" />
+                <input 
+                  type="text"
+                  placeholder={`Search ${adminTab}...`}
+                  value={adminSearchQuery}
+                  onChange={(e) => setAdminSearchQuery(e.target.value)}
+                  className="admin-search-input"
+                />
+                {adminSearchQuery && (
+                  <button onClick={() => setAdminSearchQuery("")} className="admin-search-clear" title="Clear search">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              <div className="admin-filter-group">
+                {/* Stores Tab Filters */}
+                {adminTab === "stores" && (
+                  <select 
+                    value={adminStatusFilter} 
+                    onChange={(e) => setAdminStatusFilter(e.target.value as any)}
+                    className="admin-select-filter"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="approved">Approved Only</option>
+                    <option value="pending">Pending Approval</option>
+                    <option value="rejected">Rejected Only</option>
+                  </select>
+                )}
+
+                {/* Users Tab Filters */}
+                {adminTab === "users" && (
+                  <select 
+                    value={adminRoleFilter} 
+                    onChange={(e) => setAdminRoleFilter(e.target.value)}
+                    className="admin-select-filter"
+                  >
+                    <option value="all">All Roles</option>
+                    <option value="Super Admin">Super Admin</option>
+                    <option value="Store Owner">Store Owner</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Cashier">Cashier</option>
+                  </select>
+                )}
+
+                {/* Emails Tab Filters */}
+                {adminTab === "emails" && (
+                  <select 
+                    value={adminEmailStatusFilter} 
+                    onChange={(e) => setAdminEmailStatusFilter(e.target.value)}
+                    className="admin-select-filter"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="sent">Sent</option>
+                    <option value="failed">Failed</option>
+                  </select>
+                )}
+
+                {/* Grid vs Table View Mode Switcher */}
+                <div className="admin-view-toggle">
+                  <button 
+                    onClick={() => setAdminViewMode("table")}
+                    className={`admin-toggle-btn ${adminViewMode === "table" ? "active" : ""}`}
+                    title="Table View"
+                  >
+                    <LayoutList size={15} />
+                    <span className="admin-desktop-only">Table</span>
+                  </button>
+                  <button 
+                    onClick={() => setAdminViewMode("cards")}
+                    className={`admin-toggle-btn ${adminViewMode === "cards" ? "active" : ""}`}
+                    title="Card View"
+                  >
+                    <Grid size={15} />
+                    <span className="admin-desktop-only">Cards</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* TAB 1: OVERVIEW */}
+          {adminLoading && (
+            <div style={{ textAlign: "center", padding: "4rem 2rem", color: "var(--color-text-muted)" }}>
+              <RefreshCw size={32} className="spinning" style={{ margin: "0 auto 1rem auto", display: "block", color: "var(--color-primary)" }} />
+              <div style={{ fontWeight: 700, fontSize: "1rem" }}>Fetching Latest Master Admin Analytics...</div>
+            </div>
+          )}
+
+          {/* TAB 1: OVERVIEW METRICS & QUICK ACTIONS */}
           {!adminLoading && adminTab === "overview" && adminStats && (
             <div>
               {/* Stat Cards Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.25rem", marginBottom: "2rem" }}>
-                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "1.25rem", borderRadius: "14px", border: "1px solid var(--color-border)", boxShadow: "var(--shadow-sm)" }}>
-                  <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", fontWeight: 700 }}>TOTAL STORES</span>
-                  <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-text-dark)", margin: "0.3rem 0" }}>{adminStats.total_stores}</div>
-                  <span style={{ fontSize: "0.78rem", color: "var(--color-success)", fontWeight: 600 }}>{adminStats.approved_stores} Approved Stores</span>
+              <div className="admin-stats-grid">
+                <div className="admin-stat-card" onClick={() => setAdminTab("stores")}>
+                  <div className="admin-stat-header">
+                    <span className="admin-stat-label">TOTAL STORES</span>
+                    <div className="admin-stat-icon" style={{ background: "rgba(59, 130, 246, 0.1)", color: "#3b82f6" }}>
+                      <StoreIcon size={20} />
+                    </div>
+                  </div>
+                  <div className="admin-stat-value">{adminStats.total_stores}</div>
+                  <div className="admin-stat-sub" style={{ color: "var(--color-success)" }}>
+                    <CheckCircle size={14} /> {adminStats.approved_stores} Approved Active
+                  </div>
                 </div>
 
-                <div style={{ backgroundColor: "var(--color-neutral-container)", padding: "1.25rem", borderRadius: "14px", border: "1px solid var(--color-border)", boxShadow: "var(--shadow-sm)" }}>
-                  <span style={{ fontSize: "0.8rem", color: "var(--color-danger)", fontWeight: 700 }}>PENDING APPROVALS</span>
-                  <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-danger)", margin: "0.3rem 0" }}>{adminStats.pending_stores}</div>
-                  <span style={{ fontSize: "0.78rem", color: "var(--color-danger)", fontWeight: 600 }}>Action Required</span>
+                <div className="admin-stat-card" onClick={() => setAdminTab("pending")} style={{ borderColor: adminStats.pending_stores > 0 ? "rgba(220, 38, 38, 0.4)" : "var(--color-border)" }}>
+                  <div className="admin-stat-header">
+                    <span className="admin-stat-label" style={{ color: "var(--color-danger)" }}>PENDING APPROVALS</span>
+                    <div className="admin-stat-icon" style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444" }}>
+                      <AlertTriangle size={20} />
+                    </div>
+                  </div>
+                  <div className="admin-stat-value" style={{ color: "var(--color-danger)" }}>{adminStats.pending_stores}</div>
+                  <div className="admin-stat-sub" style={{ color: adminStats.pending_stores > 0 ? "var(--color-danger)" : "var(--color-text-muted)" }}>
+                    {adminStats.pending_stores > 0 ? "Action Required Now" : "All Caught Up"}
+                  </div>
                 </div>
 
-                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "1.25rem", borderRadius: "14px", border: "1px solid var(--color-border)", boxShadow: "var(--shadow-sm)" }}>
-                  <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", fontWeight: 700 }}>REGISTERED USERS</span>
-                  <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-text-dark)", margin: "0.3rem 0" }}>{adminStats.total_users}</div>
-                  <span style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>Across platform</span>
+                <div className="admin-stat-card" onClick={() => setAdminTab("users")}>
+                  <div className="admin-stat-header">
+                    <span className="admin-stat-label">REGISTERED USERS</span>
+                    <div className="admin-stat-icon" style={{ background: "rgba(168, 85, 247, 0.1)", color: "#a855f7" }}>
+                      <Users size={20} />
+                    </div>
+                  </div>
+                  <div className="admin-stat-value">{adminStats.total_users}</div>
+                  <div className="admin-stat-sub" style={{ color: "var(--color-text-muted)" }}>
+                    Across Platform Ecosystem
+                  </div>
                 </div>
 
-                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "1.25rem", borderRadius: "14px", border: "1px solid var(--color-border)", boxShadow: "var(--shadow-sm)" }}>
-                  <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", fontWeight: 700 }}>TOTAL REVENUE</span>
-                  <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--color-primary)", margin: "0.3rem 0" }}>₹{adminStats.total_revenue.toLocaleString()}</div>
-                  <span style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>{adminStats.total_sales_count} total sales</span>
+                <div className="admin-stat-card">
+                  <div className="admin-stat-header">
+                    <span className="admin-stat-label">TOTAL REVENUE</span>
+                    <div className="admin-stat-icon" style={{ background: "rgba(34, 197, 94, 0.1)", color: "#22c55e" }}>
+                      <DollarSign size={20} />
+                    </div>
+                  </div>
+                  <div className="admin-stat-value" style={{ color: "var(--color-primary)" }}>₹{adminStats.total_revenue.toLocaleString()}</div>
+                  <div className="admin-stat-sub" style={{ color: "var(--color-text-muted)" }}>
+                    {adminStats.total_sales_count} completed sales
+                  </div>
                 </div>
               </div>
 
-              {/* Pending Approvals Quick Alert Card */}
+              {/* Pending Approvals Alert Banner */}
               {adminStats.pending_stores > 0 && (
-                <div style={{ backgroundColor: "var(--color-neutral-container)", border: "1px solid var(--color-border)", padding: "1.25rem 1.5rem", borderRadius: "12px", marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <h4 style={{ margin: 0, color: "var(--color-text-dark)", fontWeight: 800 }}>{adminStats.pending_stores} Store Request(s) Waiting For Approval</h4>
-                    <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>Approve requests to automatically notify store owners via email and grant them store access.</p>
+                <div style={{
+                  background: "linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(220, 38, 38, 0.15) 100%)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  padding: "1.35rem 1.6rem",
+                  borderRadius: "16px",
+                  marginBottom: "2rem",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "1rem"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#ef4444", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <AlertTriangle size={22} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, color: "var(--color-text-dark)", fontWeight: 800, fontSize: "1.05rem" }}>
+                        {adminStats.pending_stores} Store Request(s) Awaiting Approval
+                      </h4>
+                      <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
+                        Review details and grant instant access. System will trigger confirmation emails automatically.
+                      </p>
+                    </div>
                   </div>
-                  <button onClick={() => setAdminTab("pending")} className="btn btn-primary" style={{ backgroundColor: "var(--color-primary)", padding: "0.5rem 1.2rem", borderRadius: "8px", fontWeight: 700, fontSize: "0.85rem" }}>
-                    Review Pending ({adminStats.pending_stores})
+                  <button 
+                    onClick={() => setAdminTab("pending")} 
+                    className="btn btn-primary" 
+                    style={{ backgroundColor: "var(--color-danger)", color: "#ffffff", padding: "0.6rem 1.4rem", borderRadius: "10px", fontWeight: 700, fontSize: "0.88rem", border: "none" }}
+                  >
+                    Review Pending Requests ({adminStats.pending_stores})
                   </button>
                 </div>
               )}
+
+              {/* Platform Quick Summary Section */}
+              <div style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderRadius: "16px", padding: "1.5rem", boxShadow: "var(--shadow-sm)" }}>
+                <h4 style={{ margin: "0 0 1rem 0", fontWeight: 800, color: "var(--color-text-dark)", fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <Building size={18} style={{ color: "var(--color-primary)" }} /> Platform Store Health Overview
+                </h4>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+                  <div style={{ background: "var(--color-neutral-container)", padding: "1rem", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                    <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", fontWeight: 700 }}>APPROVAL RATIO</div>
+                    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#22c55e", margin: "0.2rem 0" }}>
+                      {adminStats.total_stores > 0 ? `${Math.round((adminStats.approved_stores / adminStats.total_stores) * 100)}%` : "100%"}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>{adminStats.approved_stores} of {adminStats.total_stores} active</div>
+                  </div>
+
+                  <div style={{ background: "var(--color-neutral-container)", padding: "1rem", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                    <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", fontWeight: 700 }}>TOTAL PRODUCTS LISTED</div>
+                    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-dark)", margin: "0.2rem 0" }}>
+                      {adminStats.total_products || 0}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>Across all merchant stores</div>
+                  </div>
+
+                  <div style={{ background: "var(--color-neutral-container)", padding: "1rem", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
+                    <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", fontWeight: 700 }}>EMAIL NOTIFICATION LOGS</div>
+                    <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#38bdf8", margin: "0.2rem 0" }}>
+                      {emailLogsList.length}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>Triggered system emails</div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {/* TAB 2: PENDING APPROVALS */}
           {!adminLoading && adminTab === "pending" && (
             <div>
-              <h3 style={{ fontWeight: 800, fontSize: "1.25rem", marginBottom: "1rem", color: "var(--color-text-dark)" }}>Store Creation Requests Pending Approval</h3>
-              {pendingStoresList.length === 0 ? (
-                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "3rem", borderRadius: "12px", textAlign: "center", border: "1px solid var(--color-border)" }}>
-                  <h4 style={{ margin: 0, fontWeight: 700, color: "var(--color-text-dark)" }}>No Pending Approvals</h4>
-                  <p style={{ color: "var(--color-text-muted)", fontSize: "0.85rem", margin: "0.25rem 0 0 0" }}>All store requests have been reviewed and approved.</p>
+              {pendingStoresList.filter(s => {
+                const q = adminSearchQuery.toLowerCase();
+                return (s.name || "").toLowerCase().includes(q) || (s.slug || "").toLowerCase().includes(q) || (s.owner_email || "").toLowerCase().includes(q);
+              }).length === 0 ? (
+                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "3.5rem 1.5rem", borderRadius: "16px", textAlign: "center", border: "1px solid var(--color-border)" }}>
+                  <CheckCircle size={48} style={{ color: "#22c55e", margin: "0 auto 1rem auto" }} />
+                  <h4 style={{ margin: 0, fontWeight: 800, color: "var(--color-text-dark)", fontSize: "1.2rem" }}>No Pending Approvals</h4>
+                  <p style={{ color: "var(--color-text-muted)", fontSize: "0.88rem", margin: "0.35rem 0 0 0" }}>
+                    All merchant store creation requests have been reviewed and approved!
+                  </p>
                 </div>
               ) : (
-                <div style={{ display: "grid", gap: "1rem" }}>
-                  {pendingStoresList.map(st => (
-                    <div key={st.id} style={{ backgroundColor: "var(--color-bg-card)", padding: "1.25rem 1.5rem", borderRadius: "12px", border: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <h4 style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: "var(--color-text-dark)" }}>{st.name}</h4>
-                          <span style={{ backgroundColor: "#FFF3E0", color: "#E65100", fontSize: "0.72rem", padding: "0.15rem 0.5rem", borderRadius: "10px", fontWeight: 800 }}>PENDING</span>
-                        </div>
-                        <p style={{ margin: "0.25rem 0", fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
-                          URL Slug: <code>{st.slug}</code> | Email: <strong>{st.owner_email || "Not specified"}</strong> | Owner: {st.owner_name || "N/A"}
-                        </p>
-                        <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>Requested on: {new Date(st.created_at).toLocaleString()}</span>
-                      </div>
-                      <div style={{ display: "flex", gap: "0.75rem" }}>
-                        <button 
-                          onClick={() => handleApproveStore(st.id, st.name)}
-                          className="btn btn-primary"
-                          style={{ backgroundColor: "var(--color-success)", color: "#ffffff", padding: "0.5rem 1.25rem", borderRadius: "8px", fontWeight: 700, fontSize: "0.85rem", border: "none" }}
-                        >
-                          Approve & Send Email
-                        </button>
-                        <button 
-                          onClick={() => handleRejectStore(st.id, st.name)}
-                          className="btn btn-secondary"
-                          style={{ color: "var(--color-danger)", borderColor: "var(--color-border)", padding: "0.5rem 1rem", borderRadius: "8px", fontWeight: 700, fontSize: "0.85rem" }}
-                        >
-                          Reject
-                        </button>
-                      </div>
+                <>
+                  {/* Card / Grid View or Desktop Table */}
+                  {adminViewMode === "cards" ? (
+                    <div className="admin-mobile-cards">
+                      {pendingStoresList
+                        .filter(s => {
+                          const q = adminSearchQuery.toLowerCase();
+                          return (s.name || "").toLowerCase().includes(q) || (s.slug || "").toLowerCase().includes(q) || (s.owner_email || "").toLowerCase().includes(q);
+                        })
+                        .map(st => (
+                          <div key={st.id} className="admin-card-item">
+                            <div className="admin-card-item-header">
+                              <div>
+                                <h4 className="admin-card-item-title">{st.name}</h4>
+                                <div className="admin-card-item-subtitle">Slug: <code>{st.slug}</code></div>
+                              </div>
+                              <span className="admin-badge admin-badge-pending">PENDING</span>
+                            </div>
+                            <div className="admin-card-item-body">
+                              <div>
+                                <div className="admin-card-field-label">OWNER EMAIL</div>
+                                <div className="admin-card-field-val">{st.owner_email || "Not specified"}</div>
+                              </div>
+                              <div>
+                                <div className="admin-card-field-label">OWNER NAME</div>
+                                <div className="admin-card-field-val">{st.owner_name || "N/A"}</div>
+                              </div>
+                              <div>
+                                <div className="admin-card-field-label">REQUESTED DATE</div>
+                                <div className="admin-card-field-val">{new Date(st.created_at).toLocaleDateString()}</div>
+                              </div>
+                              <div>
+                                <div className="admin-card-field-label">STORE ID</div>
+                                <div className="admin-card-field-val">#{st.id}</div>
+                              </div>
+                            </div>
+                            <div className="admin-card-item-actions">
+                              <button 
+                                onClick={() => { setSelectedAdminItem(st); setAdminModalType("store"); }} 
+                                className="btn btn-secondary" 
+                                style={{ padding: "0.45rem 0.85rem", fontSize: "0.8rem", borderRadius: "8px", display: "flex", alignItems: "center", gap: "0.3rem" }}
+                              >
+                                <Eye size={14} /> Details
+                              </button>
+                              <button 
+                                onClick={() => handleApproveStore(st.id, st.name)}
+                                className="btn btn-primary"
+                                style={{ backgroundColor: "var(--color-success)", color: "#ffffff", padding: "0.45rem 1rem", borderRadius: "8px", fontWeight: 700, fontSize: "0.8rem", border: "none" }}
+                              >
+                                Approve & Email
+                              </button>
+                              <button 
+                                onClick={() => handleRejectStore(st.id, st.name)}
+                                className="btn btn-secondary"
+                                style={{ color: "var(--color-danger)", borderColor: "var(--color-border)", padding: "0.45rem 0.85rem", borderRadius: "8px", fontWeight: 700, fontSize: "0.8rem" }}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                     </div>
-                  ))}
-                </div>
+                  ) : (
+                    <div className="admin-table-wrapper">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Store Name</th>
+                            <th>Slug</th>
+                            <th>Owner Email</th>
+                            <th>Owner Name</th>
+                            <th>Requested On</th>
+                            <th>Status</th>
+                            <th style={{ textAlign: "right" }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pendingStoresList
+                            .filter(s => {
+                              const q = adminSearchQuery.toLowerCase();
+                              return (s.name || "").toLowerCase().includes(q) || (s.slug || "").toLowerCase().includes(q) || (s.owner_email || "").toLowerCase().includes(q);
+                            })
+                            .map(st => (
+                              <tr key={st.id}>
+                                <td style={{ fontWeight: 700 }}>#{st.id}</td>
+                                <td style={{ fontWeight: 700 }}>{st.name}</td>
+                                <td><code>{st.slug}</code></td>
+                                <td>{st.owner_email || "N/A"}</td>
+                                <td>{st.owner_name || "N/A"}</td>
+                                <td>{new Date(st.created_at).toLocaleString()}</td>
+                                <td>
+                                  <span className="admin-badge admin-badge-pending">Pending</span>
+                                </td>
+                                <td style={{ textAlign: "right" }}>
+                                  <div style={{ display: "flex", gap: "0.4rem", justifyContent: "flex-end" }}>
+                                    <button 
+                                      onClick={() => { setSelectedAdminItem(st); setAdminModalType("store"); }} 
+                                      className="btn btn-secondary" 
+                                      style={{ padding: "0.35rem 0.65rem", fontSize: "0.78rem", borderRadius: "6px" }}
+                                      title="View Store Info"
+                                    >
+                                      <Eye size={14} />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleApproveStore(st.id, st.name)}
+                                      className="btn btn-primary"
+                                      style={{ backgroundColor: "var(--color-success)", color: "#ffffff", padding: "0.35rem 0.85rem", borderRadius: "6px", fontWeight: 700, fontSize: "0.78rem", border: "none" }}
+                                    >
+                                      Approve
+                                    </button>
+                                    <button 
+                                      onClick={() => handleRejectStore(st.id, st.name)}
+                                      className="btn btn-secondary"
+                                      style={{ color: "var(--color-danger)", borderColor: "var(--color-border)", padding: "0.35rem 0.65rem", borderRadius: "6px", fontWeight: 700, fontSize: "0.78rem" }}
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -5879,160 +6143,510 @@ export default function App() {
           {/* TAB 3: ALL STORES */}
           {!adminLoading && adminTab === "stores" && (
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "1rem" }}>
-                <h3 style={{ fontWeight: 800, fontSize: "1.25rem", margin: 0, color: "var(--color-text-dark)" }}>All Platform Stores ({allStoresList.length})</h3>
-                <input 
-                  type="text"
-                  placeholder="Search stores by name or slug..."
-                  value={adminSearchQuery}
-                  onChange={(e) => setAdminSearchQuery(e.target.value)}
-                  style={{ padding: "0.45rem 0.85rem", borderRadius: "8px", border: "1px solid var(--color-border)", fontSize: "0.85rem", width: "260px" }}
-                />
-              </div>
-
-              <div style={{ overflowX: "auto", backgroundColor: "var(--color-bg-card)", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.85rem" }}>
-                  <thead>
-                    <tr style={{ backgroundColor: "var(--color-neutral-container)", borderBottom: "1px solid var(--color-border)" }}>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>ID</th>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Store Name</th>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Slug</th>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Owner Email</th>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Status</th>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Products</th>
-                      <th style={{ padding: "0.75rem 1rem", textAlign: "right", color: "var(--color-text-dark)" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allStoresList
-                      .filter(s => s.name?.toLowerCase().includes(adminSearchQuery.toLowerCase()) || s.slug?.toLowerCase().includes(adminSearchQuery.toLowerCase()))
-                      .map(s => (
-                        <tr key={s.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                          <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>#{s.id}</td>
-                          <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>{s.name}</td>
-                          <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-muted)" }}><code>{s.slug}</code></td>
-                          <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>{s.owner_email || "N/A"}</td>
-                          <td style={{ padding: "0.75rem 1rem" }}>
-                            {s.is_approved || s.status === "approved" ? (
-                              <span style={{ backgroundColor: "#E8F5E9", color: "#2E7D32", fontSize: "0.72rem", padding: "0.2rem 0.6rem", borderRadius: "12px", fontWeight: 800 }}>Approved</span>
-                            ) : s.status === "rejected" ? (
-                              <span style={{ backgroundColor: "#FFEBEE", color: "#C62828", fontSize: "0.72rem", padding: "0.2rem 0.6rem", borderRadius: "12px", fontWeight: 800 }}>Rejected</span>
-                            ) : (
-                              <span style={{ backgroundColor: "#FFF3E0", color: "#E65100", fontSize: "0.72rem", padding: "0.2rem 0.6rem", borderRadius: "12px", fontWeight: 800 }}>Pending</span>
-                            )}
-                          </td>
-                          <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>{s.products?.length || 0}</td>
-                          <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>
-                            <div style={{ display: "flex", gap: "0.4rem", justifyContent: "flex-end" }}>
-                              {(!s.is_approved || s.status !== "approved") && (
-                                <button onClick={() => handleApproveStore(s.id, s.name)} className="btn btn-primary" style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem", backgroundColor: "var(--color-success)", color: "#fff", borderRadius: "6px", border: "none" }}>
-                                  Approve
-                                </button>
+              {adminViewMode === "cards" ? (
+                <div className="admin-mobile-cards">
+                  {allStoresList
+                    .filter(s => {
+                      const q = adminSearchQuery.toLowerCase();
+                      const matchesSearch = (s.name || "").toLowerCase().includes(q) || (s.slug || "").toLowerCase().includes(q) || (s.owner_email || "").toLowerCase().includes(q);
+                      const matchesStatus = 
+                        adminStatusFilter === "all" ? true :
+                        adminStatusFilter === "approved" ? (s.is_approved || s.status === "approved") :
+                        adminStatusFilter === "pending" ? (!s.is_approved && s.status !== "rejected") :
+                        adminStatusFilter === "rejected" ? (s.status === "rejected") : true;
+                      return matchesSearch && matchesStatus;
+                    })
+                    .map(s => (
+                      <div key={s.id} className="admin-card-item">
+                        <div className="admin-card-item-header">
+                          <div>
+                            <h4 className="admin-card-item-title">{s.name}</h4>
+                            <div className="admin-card-item-subtitle">Slug: <code>{s.slug}</code></div>
+                          </div>
+                          {s.is_approved || s.status === "approved" ? (
+                            <span className="admin-badge admin-badge-approved">APPROVED</span>
+                          ) : s.status === "rejected" ? (
+                            <span className="admin-badge admin-badge-rejected">REJECTED</span>
+                          ) : (
+                            <span className="admin-badge admin-badge-pending">PENDING</span>
+                          )}
+                        </div>
+                        <div className="admin-card-item-body">
+                          <div>
+                            <div className="admin-card-field-label">OWNER EMAIL</div>
+                            <div className="admin-card-field-val">{s.owner_email || "N/A"}</div>
+                          </div>
+                          <div>
+                            <div className="admin-card-field-label">PRODUCTS COUNT</div>
+                            <div className="admin-card-field-val">{s.products?.length || 0} items</div>
+                          </div>
+                          <div>
+                            <div className="admin-card-field-label">STORE ID</div>
+                            <div className="admin-card-field-val">#{s.id}</div>
+                          </div>
+                        </div>
+                        <div className="admin-card-item-actions">
+                          <button 
+                            onClick={() => { setSelectedAdminItem(s); setAdminModalType("store"); }} 
+                            className="btn btn-secondary" 
+                            style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem", borderRadius: "8px", display: "flex", alignItems: "center", gap: "0.3rem" }}
+                          >
+                            <Eye size={14} /> View
+                          </button>
+                          {(!s.is_approved || s.status !== "approved") && (
+                            <button 
+                              onClick={() => handleApproveStore(s.id, s.name)} 
+                              className="btn btn-primary" 
+                              style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem", backgroundColor: "var(--color-success)", color: "#fff", borderRadius: "8px", border: "none" }}
+                            >
+                              Approve
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => handleDeleteStoreAdmin(s.id, s.name)} 
+                            className="btn btn-secondary" 
+                            style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem", color: "var(--color-danger)", borderColor: "var(--color-border)", borderRadius: "8px" }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="admin-table-wrapper">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Store Name</th>
+                        <th>Slug</th>
+                        <th>Owner Email</th>
+                        <th>Status</th>
+                        <th>Products</th>
+                        <th style={{ textAlign: "right" }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allStoresList
+                        .filter(s => {
+                          const q = adminSearchQuery.toLowerCase();
+                          const matchesSearch = (s.name || "").toLowerCase().includes(q) || (s.slug || "").toLowerCase().includes(q) || (s.owner_email || "").toLowerCase().includes(q);
+                          const matchesStatus = 
+                            adminStatusFilter === "all" ? true :
+                            adminStatusFilter === "approved" ? (s.is_approved || s.status === "approved") :
+                            adminStatusFilter === "pending" ? (!s.is_approved && s.status !== "rejected") :
+                            adminStatusFilter === "rejected" ? (s.status === "rejected") : true;
+                          return matchesSearch && matchesStatus;
+                        })
+                        .map(s => (
+                          <tr key={s.id}>
+                            <td style={{ fontWeight: 700 }}>#{s.id}</td>
+                            <td style={{ fontWeight: 700 }}>{s.name}</td>
+                            <td><code>{s.slug}</code></td>
+                            <td>{s.owner_email || "N/A"}</td>
+                            <td>
+                              {s.is_approved || s.status === "approved" ? (
+                                <span className="admin-badge admin-badge-approved">Approved</span>
+                              ) : s.status === "rejected" ? (
+                                <span className="admin-badge admin-badge-rejected">Rejected</span>
+                              ) : (
+                                <span className="admin-badge admin-badge-pending">Pending</span>
                               )}
-                              <button onClick={() => handleDeleteStoreAdmin(s.id, s.name)} className="btn btn-secondary" style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem", color: "var(--color-danger)", borderColor: "var(--color-border)", borderRadius: "6px" }}>
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
+                            </td>
+                            <td>{s.products?.length || 0}</td>
+                            <td style={{ textAlign: "right" }}>
+                              <div style={{ display: "flex", gap: "0.4rem", justifyContent: "flex-end" }}>
+                                <button 
+                                  onClick={() => { setSelectedAdminItem(s); setAdminModalType("store"); }} 
+                                  className="btn btn-secondary" 
+                                  style={{ padding: "0.35rem 0.65rem", fontSize: "0.78rem", borderRadius: "6px" }}
+                                  title="View Details"
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                {(!s.is_approved || s.status !== "approved") && (
+                                  <button 
+                                    onClick={() => handleApproveStore(s.id, s.name)} 
+                                    className="btn btn-primary" 
+                                    style={{ padding: "0.35rem 0.65rem", fontSize: "0.78rem", backgroundColor: "var(--color-success)", color: "#fff", borderRadius: "6px", border: "none" }}
+                                  >
+                                    Approve
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={() => handleDeleteStoreAdmin(s.id, s.name)} 
+                                  className="btn btn-secondary" 
+                                  style={{ padding: "0.35rem 0.65rem", fontSize: "0.78rem", color: "var(--color-danger)", borderColor: "var(--color-border)", borderRadius: "6px" }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
           {/* TAB 4: USERS DIRECTORY */}
           {!adminLoading && adminTab === "users" && (
             <div>
-              <h3 style={{ fontWeight: 800, fontSize: "1.25rem", marginBottom: "1rem", color: "var(--color-text-dark)" }}>Registered System Users ({allUsersList.length})</h3>
-              <div style={{ overflowX: "auto", backgroundColor: "var(--color-bg-card)", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.85rem" }}>
-                  <thead>
-                    <tr style={{ backgroundColor: "var(--color-neutral-container)", borderBottom: "1px solid var(--color-border)" }}>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>ID</th>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Name</th>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Email / Identifier</th>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Phone</th>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Role</th>
-                      <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Linked Store</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allUsersList.map(u => (
-                      <tr key={u.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                        <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>#{u.id}</td>
-                        <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>{u.name || "N/A"}</td>
-                        <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>{u.email}</td>
-                        <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>{u.phone || "N/A"}</td>
-                        <td style={{ padding: "0.75rem 1rem" }}>
-                          <span style={{
-                            backgroundColor: u.role === "Super Admin" ? "var(--color-neutral-container)" : "var(--color-neutral-container)",
-                            color: u.role === "Super Admin" ? "var(--color-primary)" : "var(--color-text-dark)",
-                            padding: "0.2rem 0.6rem",
-                            borderRadius: "12px",
-                            fontWeight: 700,
-                            fontSize: "0.75rem"
-                          }}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-muted)" }}>
-                          {u.store_name ? `${u.store_name} (#${u.store_id})` : "None"}
-                        </td>
-                      </tr>
+              {adminViewMode === "cards" ? (
+                <div className="admin-mobile-cards">
+                  {allUsersList
+                    .filter(u => {
+                      const q = adminSearchQuery.toLowerCase();
+                      const matchesSearch = (u.name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q) || (u.phone || "").toLowerCase().includes(q);
+                      const matchesRole = adminRoleFilter === "all" ? true : u.role === adminRoleFilter;
+                      return matchesSearch && matchesRole;
+                    })
+                    .map(u => (
+                      <div key={u.id} className="admin-card-item">
+                        <div className="admin-card-item-header">
+                          <div>
+                            <h4 className="admin-card-item-title">{u.name || "Unnamed User"}</h4>
+                            <div className="admin-card-item-subtitle">{u.email}</div>
+                          </div>
+                          <span className="admin-badge admin-badge-role">{u.role}</span>
+                        </div>
+                        <div className="admin-card-item-body">
+                          <div>
+                            <div className="admin-card-field-label">PHONE</div>
+                            <div className="admin-card-field-val">{u.phone || "N/A"}</div>
+                          </div>
+                          <div>
+                            <div className="admin-card-field-label">LINKED STORE</div>
+                            <div className="admin-card-field-val">{u.store_name ? `${u.store_name} (#${u.store_id})` : "None"}</div>
+                          </div>
+                          <div>
+                            <div className="admin-card-field-label">USER ID</div>
+                            <div className="admin-card-field-val">#{u.id}</div>
+                          </div>
+                        </div>
+                        <div className="admin-card-item-actions">
+                          <button 
+                            onClick={() => { setSelectedAdminItem(u); setAdminModalType("user"); }} 
+                            className="btn btn-secondary" 
+                            style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem", borderRadius: "8px", display: "flex", alignItems: "center", gap: "0.3rem" }}
+                          >
+                            <Eye size={14} /> Details
+                          </button>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: EMAIL NOTIFICATION LOGS */}
-          {!adminLoading && adminTab === "emails" && (
-            <div>
-              <h3 style={{ fontWeight: 800, fontSize: "1.25rem", marginBottom: "1rem", color: "var(--color-text-dark)" }}>Sent Email Notifications Log ({emailLogsList.length})</h3>
-              {emailLogsList.length === 0 ? (
-                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "3rem", borderRadius: "12px", textAlign: "center", border: "1px solid var(--color-border)" }}>
-                  <p style={{ color: "var(--color-text-muted)" }}>No email notifications sent yet.</p>
                 </div>
               ) : (
-                <div style={{ overflowX: "auto", backgroundColor: "var(--color-bg-card)", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.85rem" }}>
+                <div className="admin-table-wrapper">
+                  <table className="admin-table">
                     <thead>
-                      <tr style={{ backgroundColor: "var(--color-neutral-container)", borderBottom: "1px solid var(--color-border)" }}>
-                        <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>ID</th>
-                        <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Recipient Email</th>
-                        <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Subject</th>
-                        <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Status</th>
-                        <th style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>Sent At</th>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email / Identifier</th>
+                        <th>Phone</th>
+                        <th>Role</th>
+                        <th>Linked Store</th>
+                        <th style={{ textAlign: "right" }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {emailLogsList.map(log => (
-                        <tr key={log.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                          <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>#{log.id}</td>
-                          <td style={{ padding: "0.75rem 1rem", fontWeight: 700, color: "var(--color-text-dark)" }}>{log.to_email}</td>
-                          <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-dark)" }}>{log.subject}</td>
-                          <td style={{ padding: "0.75rem 1rem" }}>
-                            <span style={{
-                              backgroundColor: log.status === "sent" ? "#E8F5E9" : "#FFF3E0",
-                              color: log.status === "sent" ? "#2E7D32" : "#E65100",
-                              padding: "0.2rem 0.6rem",
-                              borderRadius: "12px",
-                              fontWeight: 700,
-                              fontSize: "0.75rem"
-                            }}>
-                              {log.status.toUpperCase()}
-                            </span>
-                          </td>
-                          <td style={{ padding: "0.75rem 1rem", color: "var(--color-text-muted)" }}>{new Date(log.sent_at).toLocaleString()}</td>
-                        </tr>
-                      ))}
+                      {allUsersList
+                        .filter(u => {
+                          const q = adminSearchQuery.toLowerCase();
+                          const matchesSearch = (u.name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q) || (u.phone || "").toLowerCase().includes(q);
+                          const matchesRole = adminRoleFilter === "all" ? true : u.role === adminRoleFilter;
+                          return matchesSearch && matchesRole;
+                        })
+                        .map(u => (
+                          <tr key={u.id}>
+                            <td style={{ fontWeight: 700 }}>#{u.id}</td>
+                            <td style={{ fontWeight: 700 }}>{u.name || "N/A"}</td>
+                            <td>{u.email}</td>
+                            <td>{u.phone || "N/A"}</td>
+                            <td>
+                              <span className="admin-badge admin-badge-role">{u.role}</span>
+                            </td>
+                            <td style={{ color: "var(--color-text-muted)" }}>
+                              {u.store_name ? `${u.store_name} (#${u.store_id})` : "None"}
+                            </td>
+                            <td style={{ textAlign: "right" }}>
+                              <button 
+                                onClick={() => { setSelectedAdminItem(u); setAdminModalType("user"); }} 
+                                className="btn btn-secondary" 
+                                style={{ padding: "0.35rem 0.65rem", fontSize: "0.78rem", borderRadius: "6px" }}
+                                title="View User Profile"
+                              >
+                                <Eye size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB 5: EMAIL LOGS */}
+          {!adminLoading && adminTab === "emails" && (
+            <div>
+              {emailLogsList.length === 0 ? (
+                <div style={{ backgroundColor: "var(--color-bg-card)", padding: "3.5rem 1.5rem", borderRadius: "16px", textAlign: "center", border: "1px solid var(--color-border)" }}>
+                  <Mail size={44} style={{ color: "var(--color-text-muted)", margin: "0 auto 1rem auto" }} />
+                  <p style={{ color: "var(--color-text-muted)", fontWeight: 700 }}>No email notification logs recorded yet.</p>
+                </div>
+              ) : (
+                <>
+                  {adminViewMode === "cards" ? (
+                    <div className="admin-mobile-cards">
+                      {emailLogsList
+                        .filter(l => {
+                          const q = adminSearchQuery.toLowerCase();
+                          const matchesSearch = (l.to_email || "").toLowerCase().includes(q) || (l.subject || "").toLowerCase().includes(q);
+                          const matchesStatus = adminEmailStatusFilter === "all" ? true : (l.status || "").toLowerCase() === adminEmailStatusFilter.toLowerCase();
+                          return matchesSearch && matchesStatus;
+                        })
+                        .map(log => (
+                          <div key={log.id} className="admin-card-item">
+                            <div className="admin-card-item-header">
+                              <div>
+                                <h4 className="admin-card-item-title">{log.to_email}</h4>
+                                <div className="admin-card-item-subtitle">{log.subject}</div>
+                              </div>
+                              <span className={`admin-badge ${log.status === "sent" ? "admin-badge-approved" : "admin-badge-pending"}`}>
+                                {(log.status || "SENT").toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="admin-card-item-body">
+                              <div>
+                                <div className="admin-card-field-label">SENT TIME</div>
+                                <div className="admin-card-field-val">{new Date(log.sent_at).toLocaleString()}</div>
+                              </div>
+                              <div>
+                                <div className="admin-card-field-label">LOG ID</div>
+                                <div className="admin-card-field-val">#{log.id}</div>
+                              </div>
+                            </div>
+                            <div className="admin-card-item-actions">
+                              <button 
+                                onClick={() => { setSelectedAdminItem(log); setAdminModalType("email"); }} 
+                                className="btn btn-secondary" 
+                                style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem", borderRadius: "8px", display: "flex", alignItems: "center", gap: "0.3rem" }}
+                              >
+                                <Eye size={14} /> View Email
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="admin-table-wrapper">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Recipient Email</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                            <th>Sent At</th>
+                            <th style={{ textAlign: "right" }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {emailLogsList
+                            .filter(l => {
+                              const q = adminSearchQuery.toLowerCase();
+                              const matchesSearch = (l.to_email || "").toLowerCase().includes(q) || (l.subject || "").toLowerCase().includes(q);
+                              const matchesStatus = adminEmailStatusFilter === "all" ? true : (l.status || "").toLowerCase() === adminEmailStatusFilter.toLowerCase();
+                              return matchesSearch && matchesStatus;
+                            })
+                            .map(log => (
+                              <tr key={log.id}>
+                                <td style={{ fontWeight: 700 }}>#{log.id}</td>
+                                <td style={{ fontWeight: 700 }}>{log.to_email}</td>
+                                <td>{log.subject}</td>
+                                <td>
+                                  <span className={`admin-badge ${log.status === "sent" ? "admin-badge-approved" : "admin-badge-pending"}`}>
+                                    {(log.status || "SENT").toUpperCase()}
+                                  </span>
+                                </td>
+                                <td style={{ color: "var(--color-text-muted)" }}>{new Date(log.sent_at).toLocaleString()}</td>
+                                <td style={{ textAlign: "right" }}>
+                                  <button 
+                                    onClick={() => { setSelectedAdminItem(log); setAdminModalType("email"); }} 
+                                    className="btn btn-secondary" 
+                                    style={{ padding: "0.35rem 0.65rem", fontSize: "0.78rem", borderRadius: "6px" }}
+                                    title="View Email Content"
+                                  >
+                                    <Eye size={14} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* DYNAMIC MASTER ADMIN DETAIL MODAL */}
+          {selectedAdminItem && adminModalType && (
+            <div className="admin-modal-backdrop" onClick={() => { setSelectedAdminItem(null); setAdminModalType(null); }}>
+              <div className="admin-modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="admin-modal-header">
+                  <h4 style={{ margin: 0, fontWeight: 800, color: "var(--color-text-dark)", fontSize: "1.1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    {adminModalType === "store" && <StoreIcon size={20} style={{ color: "var(--color-primary)" }} />}
+                    {adminModalType === "user" && <User size={20} style={{ color: "var(--color-primary)" }} />}
+                    {adminModalType === "email" && <Mail size={20} style={{ color: "var(--color-primary)" }} />}
+                    {adminModalType === "store" ? `Store Details: ${selectedAdminItem.name}` : adminModalType === "user" ? `User Profile: ${selectedAdminItem.name || selectedAdminItem.email}` : `Email Notification #${selectedAdminItem.id}`}
+                  </h4>
+                  <button 
+                    onClick={() => { setSelectedAdminItem(null); setAdminModalType(null); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", padding: "4px" }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="admin-modal-body">
+                  {adminModalType === "store" && (
+                    <div style={{ display: "grid", gap: "0.85rem" }}>
+                      <div style={{ background: "var(--color-neutral-container)", padding: "1rem", borderRadius: "12px" }}>
+                        <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", fontWeight: 700 }}>STORE NAME & SLUG</div>
+                        <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--color-text-dark)", marginTop: "2px" }}>{selectedAdminItem.name}</div>
+                        <div style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>URL: <code>{selectedAdminItem.slug}</code></div>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.85rem" }}>
+                        <div style={{ background: "var(--color-neutral-container)", padding: "0.85rem", borderRadius: "10px" }}>
+                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", fontWeight: 700 }}>OWNER EMAIL</div>
+                          <div style={{ fontWeight: 700, fontSize: "0.85rem" }}>{selectedAdminItem.owner_email || "N/A"}</div>
+                        </div>
+                        <div style={{ background: "var(--color-neutral-container)", padding: "0.85rem", borderRadius: "10px" }}>
+                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", fontWeight: 700 }}>OWNER PHONE</div>
+                          <div style={{ fontWeight: 700, fontSize: "0.85rem" }}>{selectedAdminItem.owner_phone || "N/A"}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.85rem" }}>
+                        <div style={{ background: "var(--color-neutral-container)", padding: "0.85rem", borderRadius: "10px" }}>
+                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", fontWeight: 700 }}>APPROVAL STATUS</div>
+                          <div style={{ marginTop: "4px" }}>
+                            {selectedAdminItem.is_approved || selectedAdminItem.status === "approved" ? (
+                              <span className="admin-badge admin-badge-approved">APPROVED</span>
+                            ) : selectedAdminItem.status === "rejected" ? (
+                              <span className="admin-badge admin-badge-rejected">REJECTED</span>
+                            ) : (
+                              <span className="admin-badge admin-badge-pending">PENDING</span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ background: "var(--color-neutral-container)", padding: "0.85rem", borderRadius: "10px" }}>
+                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", fontWeight: 700 }}>STORE CREATED</div>
+                          <div style={{ fontWeight: 700, fontSize: "0.85rem" }}>{new Date(selectedAdminItem.created_at || Date.now()).toLocaleDateString()}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {adminModalType === "user" && (
+                    <div style={{ display: "grid", gap: "0.85rem" }}>
+                      <div style={{ background: "var(--color-neutral-container)", padding: "1rem", borderRadius: "12px" }}>
+                        <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", fontWeight: 700 }}>USER NAME & ROLE</div>
+                        <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--color-text-dark)", marginTop: "2px" }}>{selectedAdminItem.name || "N/A"}</div>
+                        <div style={{ marginTop: "4px" }}><span className="admin-badge admin-badge-role">{selectedAdminItem.role}</span></div>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.85rem" }}>
+                        <div style={{ background: "var(--color-neutral-container)", padding: "0.85rem", borderRadius: "10px" }}>
+                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", fontWeight: 700 }}>EMAIL / IDENTIFIER</div>
+                          <div style={{ fontWeight: 700, fontSize: "0.85rem", wordBreak: "break-all" }}>{selectedAdminItem.email}</div>
+                        </div>
+                        <div style={{ background: "var(--color-neutral-container)", padding: "0.85rem", borderRadius: "10px" }}>
+                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", fontWeight: 700 }}>PHONE NUMBER</div>
+                          <div style={{ fontWeight: 700, fontSize: "0.85rem" }}>{selectedAdminItem.phone || "N/A"}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ background: "var(--color-neutral-container)", padding: "0.85rem", borderRadius: "10px" }}>
+                        <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", fontWeight: 700 }}>LINKED STORE</div>
+                        <div style={{ fontWeight: 700, fontSize: "0.88rem", marginTop: "2px" }}>
+                          {selectedAdminItem.store_name ? `${selectedAdminItem.store_name} (#${selectedAdminItem.store_id})` : "No store linked"}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {adminModalType === "email" && (
+                    <div style={{ display: "grid", gap: "0.85rem" }}>
+                      <div style={{ background: "var(--color-neutral-container)", padding: "1rem", borderRadius: "12px" }}>
+                        <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", fontWeight: 700 }}>RECIPIENT EMAIL</div>
+                        <div style={{ fontWeight: 800, fontSize: "1.05rem", color: "var(--color-text-dark)", marginTop: "2px" }}>{selectedAdminItem.to_email}</div>
+                      </div>
+
+                      <div style={{ background: "var(--color-neutral-container)", padding: "0.85rem", borderRadius: "10px" }}>
+                        <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", fontWeight: 700 }}>EMAIL SUBJECT</div>
+                        <div style={{ fontWeight: 700, fontSize: "0.9rem", marginTop: "2px" }}>{selectedAdminItem.subject}</div>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.85rem" }}>
+                        <div style={{ background: "var(--color-neutral-container)", padding: "0.85rem", borderRadius: "10px" }}>
+                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", fontWeight: 700 }}>DELIVERY STATUS</div>
+                          <div style={{ marginTop: "4px" }}>
+                            <span className={`admin-badge ${selectedAdminItem.status === "sent" ? "admin-badge-approved" : "admin-badge-pending"}`}>
+                              {(selectedAdminItem.status || "SENT").toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ background: "var(--color-neutral-container)", padding: "0.85rem", borderRadius: "10px" }}>
+                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", fontWeight: 700 }}>DISPATCH TIMESTAMP</div>
+                          <div style={{ fontWeight: 700, fontSize: "0.82rem" }}>{new Date(selectedAdminItem.sent_at).toLocaleString()}</div>
+                        </div>
+                      </div>
+
+                      {selectedAdminItem.body && (
+                        <div style={{ background: "var(--color-neutral-container)", padding: "0.85rem", borderRadius: "10px" }}>
+                          <div style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", fontWeight: 700, marginBottom: "4px" }}>MESSAGE BODY</div>
+                          <div style={{ fontSize: "0.82rem", background: "var(--color-bg-card)", padding: "0.75rem", borderRadius: "8px", border: "1px solid var(--color-border)", whiteSpace: "pre-wrap" }}>
+                            {selectedAdminItem.body}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="admin-modal-footer">
+                  {adminModalType === "store" && (!selectedAdminItem.is_approved && selectedAdminItem.status !== "approved") && (
+                    <button 
+                      onClick={() => {
+                        handleApproveStore(selectedAdminItem.id, selectedAdminItem.name);
+                        setSelectedAdminItem(null);
+                        setAdminModalType(null);
+                      }} 
+                      className="btn btn-primary"
+                      style={{ backgroundColor: "var(--color-success)", color: "#fff", border: "none", padding: "0.5rem 1.25rem", borderRadius: "8px", fontWeight: 700, fontSize: "0.85rem" }}
+                    >
+                      Approve Store Now
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => { setSelectedAdminItem(null); setAdminModalType(null); }}
+                    className="btn btn-secondary"
+                    style={{ padding: "0.5rem 1.25rem", borderRadius: "8px", fontWeight: 700, fontSize: "0.85rem" }}
+                  >
+                    Close Window
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
