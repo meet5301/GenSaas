@@ -10,7 +10,10 @@ import os
 from database import get_db
 import models
 
-SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    SECRET_KEY = secrets.token_hex(32)
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
@@ -31,7 +34,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     try:
         return pwd_context.verify(plain, hashed)
     except Exception:
-        return plain == hashed
+        return False
 
 
 def create_access_token(data: dict) -> str:

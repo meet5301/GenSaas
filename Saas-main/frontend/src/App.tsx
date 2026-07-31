@@ -1984,7 +1984,7 @@ export default function App() {
               ) : (
                 <button 
                   onClick={() => { setIsAuthModalOpen(true); setAuthMode("login"); setOtpStep("phone"); }} 
-                  className="btn btn-primary" 
+                  className="btn btn-secondary" 
                   style={{ 
                     padding: "0.45rem 1rem", 
                     fontSize: "0.85rem", 
