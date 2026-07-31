@@ -422,6 +422,9 @@ export default function App() {
     recent_transactions: []
   });
 
+  // Dynamic UPI Payment Modal State
+  const [isUPIModalOpen, setIsUPIModalOpen] = useState(false);
+
   // Fetch Dashboard Summary (Wallet points, Streak, Unlocked Modules, Transactions)
   const fetchDashboardSummary = async () => {
     const storedToken = localStorage.getItem("token");
@@ -1932,7 +1935,7 @@ export default function App() {
         <div className="logo-group" style={{ cursor: "pointer" }} onClick={() => setView("builder")}>
           {view === "builder" ? (
             <span style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--color-text-dark)", letterSpacing: "-0.03em" }}>
-              Gen<span style={{ color: "var(--color-accent-red)" }}>Saas</span>
+              Gen<span style={{ color: "#1C1917" }}>Saas</span>
             </span>
           ) : (
             <>
@@ -2016,7 +2019,7 @@ export default function App() {
                   { value: "Cashier", label: "Cashier" },
                   { value: "Customer", label: "Customer" }
                 ]}
-                icon={<User size={15} style={{ color: "var(--color-accent-red)" }} />}
+                icon={<User size={15} style={{ color: "#1C1917" }} />}
                 color="var(--color-accent-red)"
                 style={{ borderColor: "var(--color-border)" }}
               />
@@ -2268,7 +2271,7 @@ export default function App() {
               {parsedPreview && (
                 <div className="parsed-preview-card">
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                    <Sparkles size={15} style={{ color: "var(--color-accent-red)" }} />
+                    <Sparkles size={15} style={{ color: "#1C1917" }} />
                     <span style={{ fontWeight: 700, fontSize: "0.88rem" }}>AI Parsed Preview</span>
                     <span style={{ fontSize: "0.72rem", color: "var(--color-text-muted)", marginLeft: "auto" }}>Auto-detected from your description</span>
                   </div>
@@ -2485,7 +2488,7 @@ export default function App() {
             <div className={`admin-console-sidebar ${isConsoleOpen ? "open" : ""}`}>
               <div className="admin-console-header">
                 <div className="admin-console-title">
-                  <StoreIcon size={20} style={{ color: "var(--color-accent-red)" }} />
+                  <StoreIcon size={20} style={{ color: "#1C1917" }} />
                   <span>{t("adminConsole")}</span>
                 </div>
                 <button 
@@ -2732,7 +2735,7 @@ export default function App() {
                         <div style={{ backgroundColor: "#FFFFFF", borderRadius: "14px", padding: "1.5rem", border: "2px solid var(--color-accent-red)", margin: "1.25rem 0", boxShadow: "0 4px 16px rgba(0,0,0,0.05)" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--color-border)", paddingBottom: "0.75rem", marginBottom: "1.25rem" }}>
                             <h3 style={{ fontWeight: 800, fontSize: "1.15rem", color: "var(--color-text-dark)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                              <Package size={20} style={{ color: "var(--color-accent-red)" }} /> New Product Entry
+                              <Package size={20} style={{ color: "#1C1917" }} /> New Product Entry
                             </h3>
                             <button type="button" onClick={() => setShowAddProduct(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", display: "flex" }}>
                               <Plus size={20} style={{ transform: "rotate(45deg)" }} />
@@ -3281,16 +3284,26 @@ export default function App() {
 
                               <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "1.1rem", borderTop: "1px dashed var(--color-border)", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
                                 <span>Total Bill</span>
-                                <span style={{ color: "var(--color-accent-red)" }}>
+                                <span style={{ color: "#1C1917" }}>
                                   ₹{Math.round(invoiceItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0) * (appliedDiscount > 0 ? 0.9 : 1))}
                                 </span>
                               </div>
                             </div>
 
 
-                            <button type="submit" className="btn btn-primary" style={{ width: "100%", justifyContent: "center", padding: "0.85rem", marginTop: "1rem", borderRadius: "50px", backgroundColor: "var(--color-accent-red)" }}>
-                              {t("generateBill")}
-                            </button>
+                            <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
+                              <button 
+                                type="button" 
+                                onClick={() => setIsUPIModalOpen(true)}
+                                className="btn btn-secondary" 
+                                style={{ flex: 1, minWidth: "140px", padding: "0.85rem", borderRadius: "50px", fontWeight: 700, borderColor: "#25D366", color: "#25D366", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
+                              >
+                                ⚡ Show UPI QR
+                              </button>
+                              <button type="submit" className="btn btn-primary" style={{ flex: 1.2, minWidth: "160px", justifyContent: "center", padding: "0.85rem", borderRadius: "50px", backgroundColor: "var(--color-accent-red)" }}>
+                                {t("generateBill")}
+                              </button>
+                            </div>
                           </div>
                         )}
                       </form>
@@ -3539,7 +3552,25 @@ export default function App() {
                       {customers.length === 0 ? <div style={{ padding: "2rem", textAlign: "center", border: "1px dashed var(--color-border)", borderRadius: "10px", color: "var(--color-text-muted)" }}>No customers found. Add your first customer profile to begin building relationships.</div> : customers.map(customer => (
                         <div key={customer.id} className="builder-card" style={{ padding: "1rem", display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
                           <div><strong>{customer.name}</strong><div style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", marginTop: "0.25rem" }}>{customer.phone || "No phone"}{customer.email ? ` · ${customer.email}` : ""}</div><div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)", marginTop: "0.2rem" }}>₹{customer.total_purchases.toFixed(0)} lifetime spend · {customer.purchase_count} purchases</div></div>
-                          <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}><div><div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)" }}>LOYALTY</div><strong>{customer.loyalty_points} pts</strong></div><div><div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)" }}>CREDIT</div><strong style={{ color: customer.credit_balance > 0 ? "#B45309" : "#15803D" }}>₹{customer.credit_balance.toFixed(0)}</strong></div><button onClick={() => adjustCustomerCredit(customer, 100)} className="btn btn-secondary" style={{ padding: "0.3rem 0.55rem", fontSize: "0.75rem" }}>Add ₹100 credit</button><button onClick={() => adjustCustomerCredit(customer, -100)} className="btn btn-secondary" style={{ padding: "0.3rem 0.55rem", fontSize: "0.75rem" }}>Collect ₹100</button></div>
+                          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                            <div><div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)" }}>LOYALTY</div><strong>{customer.loyalty_points} pts</strong></div>
+                            <div><div style={{ fontSize: "0.7rem", color: "var(--color-text-muted)" }}>CREDIT</div><strong style={{ color: customer.credit_balance > 0 ? "#B45309" : "#15803D" }}>₹{customer.credit_balance.toFixed(0)}</strong></div>
+                            {customer.credit_balance > 0 && (
+                              <button 
+                                onClick={() => {
+                                  const cleanPhone = (customer.phone || "").replace(/\D/g, "");
+                                  const msg = `Dear *${customer.name}*,%0AThis is a friendly payment reminder from *${store?.name || "our store"}*.%0AYour pending credit (Udhar) balance is *₹${customer.credit_balance.toFixed(0)}*.%0APlease pay via UPI (*${store?.upi_id || "our UPI ID"}*).%0AThank you!`;
+                                  window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${msg}`, "_blank");
+                                }}
+                                className="btn btn-secondary"
+                                style={{ padding: "0.3rem 0.55rem", fontSize: "0.75rem", color: "#25D366", borderColor: "#25D366", fontWeight: 700 }}
+                              >
+                                📲 WhatsApp Udhar Reminder
+                              </button>
+                            )}
+                            <button onClick={() => adjustCustomerCredit(customer, 100)} className="btn btn-secondary" style={{ padding: "0.3rem 0.55rem", fontSize: "0.75rem" }}>Add ₹100 credit</button>
+                            <button onClick={() => adjustCustomerCredit(customer, -100)} className="btn btn-secondary" style={{ padding: "0.3rem 0.55rem", fontSize: "0.75rem" }}>Collect ₹100</button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -4852,7 +4883,7 @@ export default function App() {
                                   onClick={() => setCustomerWishlist(prev => prev.filter(id => id !== product.id))}
                                   style={{ position: "absolute", top: "0.5rem", right: "0.5rem", background: "rgba(255,255,255,0.9)", border: "none", borderRadius: "50%", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 10, boxShadow: "0 2px 6px rgba(0,0,0,0.12)" }}
                                 >
-                                  <Heart size={16} fill="#E85A4F" color="#E85A4F" />
+                                  <Heart size={16} fill="#1C1917" color="#1C1917" />
                                 </button>
                                 <img src={product.image_url || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80"} alt={product.name} style={{ height: "180px", width: "100%", objectFit: "cover" }} />
                                 <div className="product-card-body" style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
@@ -4885,7 +4916,7 @@ export default function App() {
                   <>
                     {/* Hero Description Banner */}
                     <div className="full-page-desc-banner" style={{ background: `linear-gradient(135deg, ${store.theme_color}12, ${store.secondary_color}18)` }}>
-                      <h2 style={{ color: store.theme_color }}>{store.name}</h2>
+                      <h2 style={{ color: "#1C1917" }}>{store.name}</h2>
                       <p>{store.description}</p>
                     </div>
 
@@ -4968,7 +4999,7 @@ export default function App() {
                                 boxShadow: "0 2px 6px rgba(0,0,0,0.12)"
                               }}
                             >
-                              <Heart size={16} fill={hasWishlist ? "#E85A4F" : "none"} color={hasWishlist ? "#E85A4F" : "#718096"} />
+                              <Heart size={16} fill={hasWishlist ? "#1C1917" : "none"} color="#1C1917" />
                             </button>
 
                             <img 
@@ -5009,13 +5040,13 @@ export default function App() {
                 <div className="full-page-footer">
                   {store.address && (
                     <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                      <MapPin size={16} style={{ color: store.theme_color }} />
+                      <MapPin size={16} style={{ color: "#1C1917" }} />
                       <span>{store.address}</span>
                     </div>
                   )}
                   {store.phone && (
                     <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                      <Phone size={16} style={{ color: store.theme_color }} />
+                      <Phone size={16} style={{ color: "#1C1917" }} />
                       <span>Call Store: {store.phone}</span>
                     </div>
                   )}
@@ -5220,7 +5251,7 @@ export default function App() {
                                 onClick={() => setCustomerWishlist(prev => prev.filter(id => id !== product.id))}
                                 style={{ position: "absolute", top: "0.5rem", right: "0.5rem", background: "rgba(255,255,255,0.9)", border: "none", borderRadius: "50%", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 10, boxShadow: "0 2px 6px rgba(0,0,0,0.12)" }}
                               >
-                                <Heart size={16} fill="#E85A4F" color="#E85A4F" />
+                                <Heart size={16} fill="#1C1917" color="#1C1917" />
                               </button>
                               <img src={product.image_url || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80"} alt={product.name} style={{ height: "180px", width: "100%", objectFit: "cover" }} />
                               <div className="product-card-body" style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
@@ -5253,7 +5284,7 @@ export default function App() {
                 <>
                   {/* Hero Description Banner */}
                   <div className="full-page-desc-banner" style={{ background: `linear-gradient(135deg, ${store.theme_color}12, ${store.secondary_color}18)` }}>
-                    <h2 style={{ color: store.theme_color }}>{store.name}</h2>
+                    <h2 style={{ color: "#1C1917" }}>{store.name}</h2>
                     <p>{store.description}</p>
                   </div>
 
@@ -5363,7 +5394,7 @@ export default function App() {
                               fontSize: "1.1rem"
                             }}
                           >
-                            <Heart size={16} fill={hasWishlist ? "#E85A4F" : "none"} color={hasWishlist ? "#E85A4F" : "#718096"} />
+                            <Heart size={16} fill={hasWishlist ? "#1C1917" : "none"} color="#1C1917" />
                           </button>
 
                           <img 
@@ -5404,13 +5435,13 @@ export default function App() {
               <div className="full-page-footer">
                 {store.address && (
                   <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                    <MapPin size={16} style={{ color: store.theme_color }} />
+                    <MapPin size={16} style={{ color: "#1C1917" }} />
                     <span>{store.address}</span>
                   </div>
                 )}
                 {store.phone && (
                   <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                    <Phone size={16} style={{ color: store.theme_color }} />
+                    <Phone size={16} style={{ color: "#1C1917" }} />
                     <span>Call Store: {store.phone}</span>
                   </div>
                 )}
@@ -5581,7 +5612,7 @@ export default function App() {
 
             <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "1.2rem", borderTop: "2px dashed var(--color-border)", paddingTop: "1rem", marginBottom: "1.5rem" }}>
               <span>Total Invoice Bill</span>
-              <span style={{ color: "var(--color-accent-red)" }}>₹{generatedInvoice.total}</span>
+              <span style={{ color: "#1C1917" }}>₹{generatedInvoice.total}</span>
             </div>
 
             <div className="no-print" style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
@@ -5687,7 +5718,7 @@ export default function App() {
           <div className="admin-header-banner">
             <div>
               <div className="admin-header-title">
-                <Shield size={28} style={{ color: "#f87171" }} />
+                <Shield size={28} style={{ color: "#1C1917" }} />
                 <h2>GenSaas Master Admin Panel</h2>
               </div>
               <p className="admin-header-subtitle">
@@ -5707,7 +5738,7 @@ export default function App() {
                 <span>{adminLoading ? "Refreshing..." : "Refresh Data"}</span>
               </button>
               <div className="admin-user-tag">
-                <User size={15} style={{ color: "#38bdf8" }} />
+                <User size={15} style={{ color: "#1C1917" }} />
                 <span>Super Admin</span>
               </div>
             </div>
@@ -5885,7 +5916,7 @@ export default function App() {
                       <DollarSign size={20} />
                     </div>
                   </div>
-                  <div className="admin-stat-value" style={{ color: "var(--color-primary)" }}>₹{adminStats.total_revenue.toLocaleString()}</div>
+                  <div className="admin-stat-value" style={{ color: "#1C1917" }}>₹{adminStats.total_revenue.toLocaleString()}</div>
                   <div className="admin-stat-sub" style={{ color: "var(--color-text-muted)" }}>
                     {adminStats.total_sales_count} completed sales
                   </div>
@@ -5932,7 +5963,7 @@ export default function App() {
               {/* Platform Quick Summary Section */}
               <div style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderRadius: "16px", padding: "1.5rem", boxShadow: "var(--shadow-sm)" }}>
                 <h4 style={{ margin: "0 0 1rem 0", fontWeight: 800, color: "var(--color-text-dark)", fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <Building size={18} style={{ color: "var(--color-primary)" }} /> Platform Store Health Overview
+                  <Building size={18} style={{ color: "#1C1917" }} /> Platform Store Health Overview
                 </h4>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
                   <div style={{ background: "var(--color-neutral-container)", padding: "1rem", borderRadius: "12px", border: "1px solid var(--color-border)" }}>
@@ -5971,7 +6002,7 @@ export default function App() {
                 return (s.name || "").toLowerCase().includes(q) || (s.slug || "").toLowerCase().includes(q) || (s.owner_email || "").toLowerCase().includes(q);
               }).length === 0 ? (
                 <div style={{ backgroundColor: "var(--color-bg-card)", padding: "3.5rem 1.5rem", borderRadius: "16px", textAlign: "center", border: "1px solid var(--color-border)" }}>
-                  <CheckCircle size={48} style={{ color: "#22c55e", margin: "0 auto 1rem auto" }} />
+                  <CheckCircle size={48} style={{ color: "#1C1917", margin: "0 auto 1rem auto" }} />
                   <h4 style={{ margin: 0, fontWeight: 800, color: "var(--color-text-dark)", fontSize: "1.2rem" }}>No Pending Approvals</h4>
                   <p style={{ color: "var(--color-text-muted)", fontSize: "0.88rem", margin: "0.35rem 0 0 0" }}>
                     All merchant store creation requests have been reviewed and approved!
@@ -6472,9 +6503,9 @@ export default function App() {
               <div className="admin-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="admin-modal-header">
                   <h4 style={{ margin: 0, fontWeight: 800, color: "var(--color-text-dark)", fontSize: "1.1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    {adminModalType === "store" && <StoreIcon size={20} style={{ color: "var(--color-primary)" }} />}
-                    {adminModalType === "user" && <User size={20} style={{ color: "var(--color-primary)" }} />}
-                    {adminModalType === "email" && <Mail size={20} style={{ color: "var(--color-primary)" }} />}
+                    {adminModalType === "store" && <StoreIcon size={20} style={{ color: "#1C1917" }} />}
+                    {adminModalType === "user" && <User size={20} style={{ color: "#1C1917" }} />}
+                    {adminModalType === "email" && <Mail size={20} style={{ color: "#1C1917" }} />}
                     {adminModalType === "store" ? `Store Details: ${selectedAdminItem.name}` : adminModalType === "user" ? `User Profile: ${selectedAdminItem.name || selectedAdminItem.email}` : `Email Notification #${selectedAdminItem.id}`}
                   </h4>
                   <button 
@@ -6826,6 +6857,61 @@ export default function App() {
             <button onClick={() => setIsAuthModalOpen(false)} style={{ display: "block", margin: "1rem auto 0 auto", border: "none", background: "none", color: "#64748b", fontSize: "0.82rem", cursor: "pointer" }}>
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic UPI Payment QR Code Modal */}
+      {isUPIModalOpen && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(15, 23, 42, 0.75)", backdropFilter: "blur(8px)", zIndex: 3500, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", maxWidth: "420px", width: "100%", padding: "2rem", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", border: "1px solid var(--color-border)", textAlign: "center" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "48px", height: "48px", borderRadius: "50%", backgroundColor: "rgba(139, 58, 58, 0.1)", color: "var(--color-accent-red)", fontSize: "1.3rem", fontWeight: 800, marginBottom: "0.75rem" }}>
+              ⚡
+            </div>
+            <h3 style={{ fontWeight: 800, fontSize: "1.35rem", marginBottom: "0.25rem", color: "#1C1917" }}>
+              Scan & Pay via UPI
+            </h3>
+            <p style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", marginBottom: "1.25rem" }}>
+              Scan using GPay, PhonePe, Paytm, or BHIM UPI to complete purchase
+            </p>
+
+            <div style={{ backgroundColor: "#FAF9F6", border: "2px solid var(--color-border)", padding: "1.25rem", borderRadius: "16px", display: "inline-block", marginBottom: "1.25rem" }}>
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+                  `upi://pay?pa=${store?.upi_id || '9825098250@upi'}&pn=${encodeURIComponent(store?.name || 'GenSaas Store')}&am=${Math.round(invoiceItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0) * (appliedDiscount > 0 ? 0.9 : 1))}&cu=INR`
+                )}`}
+                alt="UPI Payment QR Code"
+                style={{ width: "200px", height: "200px", display: "block", borderRadius: "8px" }}
+              />
+              <div style={{ marginTop: "0.75rem", fontSize: "1.35rem", fontWeight: 800, color: "var(--color-accent-red)" }}>
+                ₹{Math.round(invoiceItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0) * (appliedDiscount > 0 ? 0.9 : 1))}
+              </div>
+              <div style={{ fontSize: "0.78rem", color: "var(--color-text-muted)", marginTop: "0.15rem" }}>
+                Merchant UPI ID: <strong>{store?.upi_id || "9825098250@upi"}</strong>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button 
+                onClick={() => setIsUPIModalOpen(false)} 
+                className="btn btn-secondary" 
+                style={{ flex: 1, borderRadius: "10px", padding: "0.65rem", fontWeight: 600 }}
+              >
+                Close
+              </button>
+              <button 
+                onClick={() => {
+                  const billTotal = Math.round(invoiceItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0) * (appliedDiscount > 0 ? 0.9 : 1));
+                  const cleanPhone = (billingPhone || "").replace(/\D/g, "");
+                  const msg = `*Payment QR Link from ${store?.name || "GenSaas Store"}*%0ABill Total: *₹${billTotal}*%0APay via UPI: upi://${store?.upi_id || '9825098250@upi'}%0AThank you!`;
+                  window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${msg}`, "_blank");
+                }}
+                className="btn btn-primary"
+                style={{ flex: 1.2, borderRadius: "10px", padding: "0.65rem", backgroundColor: "#25D366", border: "none", color: "#FFF", fontWeight: 700 }}
+              >
+                📲 WhatsApp QR
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -71,6 +71,24 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* Universal Black Icon Enforcer - Removes colorful fills/strokes on all icons */
+svg.lucide,
+.lucide {
+  color: #1C1917 !important;
+  stroke: #1C1917 !important;
+}
+
+svg.lucide[fill="none"] {
+  fill: none !important;
+}
+
+svg.lucide[fill="#1C1917"],
+svg.lucide[fill="#E85A4F"],
+svg.lucide[fill="red"],
+svg.lucide[fill="#D32F2F"] {
+  fill: #1C1917 !important;
+}
+
 body {
   background-color: var(--color-bg-base);
   color: var(--color-text-dark);
