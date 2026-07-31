@@ -2603,10 +2603,10 @@ export default function App() {
                               title="Grid View"
                             ><Grid size={14} /> Grid</button>
                           </div>
-                          <button onClick={() => { setShowAddProduct(!showAddProduct); setEditingProduct(null); setShowAddCategory(false); }} className="btn btn-primary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                          <button onClick={() => { setShowAddProduct(!showAddProduct); setEditingProduct(null); setShowAddCategory(false); }} className="storefront-toolbar-btn btn-add-product">
                             <Plus size={14} /> Add Product
                           </button>
-                          <button onClick={() => { setShowAddCategory(!showAddCategory); setShowAddProduct(false); setEditingProduct(null); }} className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                          <button onClick={() => { setShowAddCategory(!showAddCategory); setShowAddProduct(false); setEditingProduct(null); }} className="storefront-toolbar-btn btn-add-category">
                             <Plus size={14} /> Add Category
                           </button>
                         </div>
@@ -4671,11 +4671,11 @@ export default function App() {
             }}>
               
               {/* Desktop view top bar selector */}
-              <div className="no-print" style={{ backgroundColor: "#1c1917", color: "#FFFFFF", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 2rem", fontSize: "0.85rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", opacity: 0.8 }}>
-                  <Eye size={14} /> SaaS Desktop Storefront View
+              <div className="no-print storefront-top-bar">
+                <div className="storefront-view-badge">
+                  <Eye size={15} /> SaaS Desktop Storefront View
                 </div>
-                <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
+                <div className="storefront-top-actions">
                   <button 
                     onClick={() => {
                       setIsConsoleOpen(true);
@@ -4684,7 +4684,7 @@ export default function App() {
                       setShowAddCategory(false);
                       setEditingProduct(null);
                     }} 
-                    style={{ backgroundColor: "var(--color-accent-red)", color: "white", border: "none", borderRadius: "6px", padding: "0.4rem 0.85rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.85rem" }}
+                    className="storefront-toolbar-btn btn-add-product"
                   >
                     <Plus size={15} /> Add Product
                   </button>
@@ -4696,14 +4696,14 @@ export default function App() {
                       setShowAddProduct(false);
                       setEditingProduct(null);
                     }} 
-                    style={{ backgroundColor: store?.theme_color || "var(--color-accent-red)", color: "white", border: "none", borderRadius: "6px", padding: "0.4rem 0.85rem", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.85rem" }}
+                    className="storefront-toolbar-btn btn-add-category"
                   >
                     <Plus size={15} /> Add Category
                   </button>
-                  <button onClick={() => setIsConsoleOpen(true)} style={{ backgroundColor: "#2A2421", color: "white", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px", padding: "0.4rem 0.85rem", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
-                    <Edit3 size={14} /> {t("adminConsole")}
+                  <button onClick={() => setIsConsoleOpen(true)} className="storefront-toolbar-btn btn-owner-console">
+                    <Edit3 size={15} /> {t("adminConsole")}
                   </button>
-                  <button onClick={() => { setStore(null); setProducts([]); setView("builder"); }} className="btn btn-secondary" style={{ padding: "0.4rem 0.85rem", fontSize: "0.85rem", color: "white", borderColor: "rgba(255,255,255,0.25)", backgroundColor: "transparent" }}>
+                  <button onClick={() => { setStore(null); setProducts([]); setView("builder"); }} className="storefront-toolbar-btn btn-create-store">
                     Create New Store
                   </button>
                 </div>
@@ -5308,20 +5308,7 @@ export default function App() {
                           setShowAddCategory(false);
                           setEditingProduct(null);
                         }}
-                        style={{
-                          padding: "0.45rem 0.9rem",
-                          fontSize: "0.82rem",
-                          fontWeight: 700,
-                          borderRadius: "20px",
-                          backgroundColor: store.theme_color,
-                          color: "#FFFFFF",
-                          border: "none",
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "0.35rem",
-                          boxShadow: "0 2px 6px rgba(0,0,0,0.12)"
-                        }}
+                        className="storefront-toolbar-btn btn-add-product"
                       >
                         <Plus size={14} /> Add Product
                       </button>
@@ -5333,20 +5320,7 @@ export default function App() {
                           setShowAddProduct(false);
                           setEditingProduct(null);
                         }}
-                        style={{
-                          padding: "0.45rem 0.9rem",
-                          fontSize: "0.82rem",
-                          fontWeight: 700,
-                          borderRadius: "20px",
-                          backgroundColor: store?.theme_color || "var(--color-accent-red)",
-                          color: "#FFFFFF",
-                          border: "none",
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "0.35rem",
-                          boxShadow: "0 2px 6px rgba(0,0,0,0.12)"
-                        }}
+                        className="storefront-toolbar-btn btn-add-category"
                       >
                         <Plus size={14} /> Add Category
                       </button>
@@ -5360,11 +5334,6 @@ export default function App() {
                       const hasWishlist = customerWishlist.includes(product.id);
                       return (
                         <div key={product.id} className="product-card" style={{ display: "flex", flexDirection: "column", border: "1px solid rgba(0,0,0,0.06)", borderRadius: "12px", overflow: "hidden", background: "#FFFFFF", boxShadow: "0 2px 10px rgba(0,0,0,0.02)", position: "relative" }}>
-                          {product.stock_quantity <= store.low_stock_threshold && (
-                            <div className="product-badge" style={{ background: "#FFE3E0", color: "#D32F2F" }}>
-                              {outOfStock ? "Out of Stock" : "Low Stock"}
-                            </div>
-                          )}
                           
                           {/* Wishlist toggle button */}
                           <button 
@@ -5394,7 +5363,7 @@ export default function App() {
                               fontSize: "1.1rem"
                             }}
                           >
-                            {hasWishlist ? "â¤ï¸" : "ðŸ¤"}
+                            <Heart size={16} fill={hasWishlist ? "#E85A4F" : "none"} color={hasWishlist ? "#E85A4F" : "#718096"} />
                           </button>
 
                           <img 

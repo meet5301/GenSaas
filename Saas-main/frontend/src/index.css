@@ -351,6 +351,159 @@ input:focus, textarea:focus, select:focus {
   background: #1C1917;
 }
 
+/* Master Uniform Button Styling - Exact same height & size across phone, tablet, laptop & desktop */
+.storefront-top-bar {
+  background-color: #1c1917 !important;
+  color: #FFFFFF !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 0.65rem 1.5rem !important;
+  font-size: 0.85rem !important;
+  gap: 1rem !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+.storefront-view-badge {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  opacity: 0.9 !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.storefront-top-actions {
+  display: flex !important;
+  gap: 0.6rem !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+}
+
+.storefront-toolbar-btn {
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  padding: 0 0.9rem !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.4rem !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease-in-out !important;
+  box-sizing: border-box !important;
+  text-decoration: none !important;
+  flex-shrink: 0 !important;
+}
+
+.storefront-toolbar-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+}
+
+.storefront-toolbar-btn:active {
+  transform: translateY(0) !important;
+}
+
+/* Specific Button Color Variants */
+.storefront-toolbar-btn.btn-add-product {
+  background-color: var(--color-accent-red, #8B3A3A) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--color-accent-red, #8B3A3A) !important;
+}
+
+.storefront-toolbar-btn.btn-add-product:hover {
+  background-color: #763030 !important;
+  border-color: #763030 !important;
+}
+
+.storefront-toolbar-btn.btn-add-category {
+  background-color: var(--color-accent-red, #8B3A3A) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--color-accent-red, #8B3A3A) !important;
+}
+
+.storefront-toolbar-btn.btn-add-category:hover {
+  background-color: #763030 !important;
+  border-color: #763030 !important;
+}
+
+.storefront-toolbar-btn.btn-owner-console {
+  background-color: #2b2523 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.storefront-toolbar-btn.btn-owner-console:hover {
+  background-color: #3f3734 !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.storefront-toolbar-btn.btn-create-store {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.storefront-toolbar-btn.btn-create-store:hover {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+@media (max-width: 768px) {
+  .storefront-top-bar {
+    padding: 0.6rem 0.85rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.65rem !important;
+  }
+
+  .storefront-view-badge {
+    justify-content: center !important;
+  }
+
+  .storefront-top-actions {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+  }
+
+  .storefront-toolbar-btn {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    font-size: 0.82rem !important;
+    padding: 0 0.75rem !important;
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .storefront-top-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+  }
+
+  .storefront-toolbar-btn {
+    width: 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    font-size: 0.8rem !important;
+    padding: 0 0.5rem !important;
+  }
+}
+
 .builder-card,
 .dashboard-panel {
   background: #FFFFFF;
