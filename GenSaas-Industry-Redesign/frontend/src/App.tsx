@@ -133,6 +133,27 @@ interface Category {
 
 const BACKEND_URL = (import.meta.env.VITE_API_URL as string) || (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://127.0.0.1:8000" : "");
 
+const readJsonResponse = async <T,>(response: Response): Promise<T> => {
+  const body = await response.text();
+  if (!body.trim()) {
+    throw new Error(`The API returned an empty response (HTTP ${response.status}).`);
+  }
+  try {
+    return JSON.parse(body) as T;
+  } catch {
+    throw new Error(`The API returned an invalid response (HTTP ${response.status}).`);
+  }
+};
+
+const readErrorResponse = async (response: Response, fallback: string): Promise<Error> => {
+  try {
+    const data = await readJsonResponse<{ detail?: string }>(response);
+    return new Error(data.detail || fallback);
+  } catch {
+    return new Error(`${fallback} (HTTP ${response.status}).`);
+  }
+};
+
 interface CustomDropdownProps {
   value: string;
   onChange: (val: any) => void;
@@ -438,7 +459,7 @@ export default function App() {
         headers: { Authorization: `Bearer ${storedToken}` }
       });
       if (res.ok) {
-        const data = await res.json();
+        const data = await readJsonResponse<typeof dashboardSummary>(res);
         setDashboardSummary(data);
       }
     } catch (e) {
@@ -481,8 +502,8 @@ export default function App() {
           phone: mobileAuthForm.phone || "9825098250"
         })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Signup failed.");
+      if (!res.ok) throw await readErrorResponse(res, "Signup failed.");
+      const data = await readJsonResponse<{ access_token: string; user: any; message?: string }>(res);
       
       localStorage.setItem("token", data.access_token);
       setToken(data.access_token);
@@ -524,8 +545,8 @@ export default function App() {
           password: mobileAuthForm.password
         })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Login failed.");
+      if (!res.ok) throw await readErrorResponse(res, "Login failed.");
+      const data = await readJsonResponse<{ access_token: string }>(res);
       
       localStorage.setItem("token", data.access_token);
       setToken(data.access_token);
@@ -535,7 +556,7 @@ export default function App() {
         headers: { Authorization: `Bearer ${data.access_token}` }
       });
       if (meRes.ok) {
-        const userData = await meRes.json();
+        const userData = await readJsonResponse<any>(meRes);
         setCurrentUser(userData);
         setUserRole(userData.role);
         setIsOwnerVerified(true);
@@ -570,11 +591,11 @@ export default function App() {
         fetch(`${BACKEND_URL}/api/admin/email-logs`, { headers }),
       ]);
 
-      if (statsRes.ok) setAdminStats(await statsRes.json());
-      if (pendingRes.ok) setPendingStoresList(await pendingRes.json());
-      if (storesRes.ok) setAllStoresList(await storesRes.json());
-      if (usersRes.ok) setAllUsersList(await usersRes.json());
-      if (emailsRes.ok) setEmailLogsList(await emailsRes.json());
+      if (statsRes.ok) setAdminStats(await readJsonResponse<any>(statsRes));
+      if (pendingRes.ok) setPendingStoresList(await readJsonResponse<any[]>(pendingRes));
+      if (storesRes.ok) setAllStoresList(await readJsonResponse<any[]>(storesRes));
+      if (usersRes.ok) setAllUsersList(await readJsonResponse<any[]>(usersRes));
+      if (emailsRes.ok) setEmailLogsList(await readJsonResponse<any[]>(emailsRes));
     } catch (e) {
       console.error("Admin data fetch error:", e);
     } finally {
@@ -605,8 +626,7 @@ export default function App() {
         alert(`✅ Mubarak ho! Store "${storeName}" has been APPROVED! Notification email has been sent to owner.`);
         fetchAdminData();
       } else {
-        const err = await res.json();
-        alert(err.detail || "Approval failed");
+        alert((await readErrorResponse(res, "Approval failed")).message);
       }
     } catch (e) {
       alert("Store approval failed");
@@ -686,7 +706,7 @@ export default function App() {
         body: JSON.stringify({ ...product, stock_quantity: newQty })
       });
       if (!response.ok) throw new Error("Failed to update stock");
-      const updated = await response.json();
+      const updated = await readJsonResponse<any>(response);
       setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
       alert(`Stock for ${product.name} updated to ${newQty}!`);
     } catch (err) {
@@ -710,7 +730,7 @@ export default function App() {
   useEffect(() => {
     if (store) {
       fetch(`${BACKEND_URL}/api/stores/${store.id}/warehouses`)
-        .then(res => res.ok ? res.json() : [])
+        .then(res => res.ok ? readJsonResponse<any[]>(res) : [])
         .then(data => setWarehousesList(data.length > 0 ? data : [{ id: 1, name: "Main Warehouse", location: "Store Backroom" }]))
         .catch(err => console.error("Error fetching warehouses:", err));
     }
@@ -871,7 +891,7 @@ export default function App() {
   const loadStoreData = async (storeId: number, userId: number, role: string) => {
     const storeRes = await fetch(`${BACKEND_URL}/api/stores/${storeId}`);
     if (!storeRes.ok) return;
-    const storeData = await storeRes.json();
+    const storeData = await readJsonResponse<any>(storeRes);
     setStore(storeData);
     setProducts(storeData.products || []);
     setStoreForm(storeData);
@@ -901,7 +921,7 @@ export default function App() {
           headers: { Authorization: `Bearer ${storedToken}` }
         });
         if (!res.ok) { localStorage.removeItem("token"); return; }
-        const userData = await res.json();
+        const userData = await readJsonResponse<any>(res);
         setCurrentUser(userData);
         setUserRole(userData.role);
         setIsOwnerVerified(true);
@@ -943,7 +963,7 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ prompt: text })
         });
-        if (res.ok) setParsedPreview(await res.json());
+        if (res.ok) setParsedPreview(await readJsonResponse<any>(res));
       } catch { /* silent */ }
     }, 600);
     setParseDebounceTimer(timer);
@@ -1038,11 +1058,11 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({ detail: "Failed to generate storefront. Please try again." }));
-        throw new Error(errData.detail || "Failed to generate storefront. Please try again.");
+        const errData = await readErrorResponse(response, "Failed to generate storefront. Please try again.");
+        throw errData;
       }
 
-      const data: Store = await response.json();
+      const data: Store = await readJsonResponse<Store>(response);
       
       setCurrentUser((prev: any) => prev ? { ...prev, store_id: data.id } : prev);
       setStore(data);
@@ -1074,7 +1094,7 @@ export default function App() {
         body: JSON.stringify(updatedFields)
       });
       if (!response.ok) throw new Error("Failed to save changes");
-      const data = await response.json();
+      const data = await readJsonResponse<any>(response);
       setStore(data);
       setStoreForm(data);
     } catch (err) {
@@ -1109,7 +1129,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/stores/${storeId}/sales`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setSales(data);
       }
     } catch (err) {
@@ -1122,7 +1142,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/stores/${storeId}/categories`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setCategoriesList(data);
       }
     } catch (err) {
@@ -1140,7 +1160,7 @@ export default function App() {
         body: JSON.stringify(categoryForm)
       });
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setCategoriesList(prev => [...prev, data]);
         setShowAddCategory(false);
         setCategoryForm({ name: "", image_url: "", subcategories: "[]" });
@@ -1169,7 +1189,7 @@ export default function App() {
     try {
       const query = search ? `?search=${encodeURIComponent(search)}` : "";
       const response = await fetch(`${BACKEND_URL}/api/stores/${storeId}/customers${query}`);
-      if (response.ok) setCustomers(await response.json());
+      if (response.ok) setCustomers(await readJsonResponse<Customer[]>(response));
     } catch (err) { console.error("Error fetching customers:", err); }
   };
 
@@ -1198,7 +1218,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/stores/${storeId}/orders`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setOrdersList(data);
       }
     } catch (err) {
@@ -1210,7 +1230,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/stores/${storeId}/orders/customer/${custId}`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setOrdersList(data);
       }
     } catch (err) {
@@ -1227,7 +1247,7 @@ export default function App() {
         method: "PUT"
       });
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setOrdersList(prev => prev.map(o => o.id === orderId ? data : o));
       }
     } catch (err) {
@@ -1240,7 +1260,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/stores/${storeId}/cashflows`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setCashflowsList(data);
       }
     } catch (err) {
@@ -1258,7 +1278,7 @@ export default function App() {
         body: JSON.stringify(payload)
       });
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setCashflowsList(prev => [data, ...prev]);
       }
     } catch (err) {
@@ -1271,7 +1291,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/stores/${storeId}/ai/insights`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setAiInsightsData(data);
       }
     } catch (err) {
@@ -1299,8 +1319,7 @@ export default function App() {
           alert("Account created! Please login.");
           setAuthMode("login");
         } else {
-          const errData = await response.json();
-          alert(errData.detail || "Signup failed.");
+          alert((await readErrorResponse(response, "Signup failed.")).message);
         }
       } catch {
         alert("Registration failed. Backend connection issue.");
@@ -1314,7 +1333,7 @@ export default function App() {
         });
         if (!response.ok) { alert("Invalid email or password."); return; }
 
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         localStorage.setItem("token", data.access_token);
         localStorage.setItem("refresh_token", data.refresh_token);
         setToken(data.access_token);
@@ -1324,7 +1343,7 @@ export default function App() {
           headers: { Authorization: `Bearer ${data.access_token}` }
         });
         if (!meRes.ok) { alert("Login failed."); return; }
-        const userData = await meRes.json();
+        const userData = await readJsonResponse<any>(meRes);
 
         setCurrentUser(userData);
         setUserRole(userData.role);
@@ -1366,7 +1385,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/stores/${storeId}/suppliers`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setSuppliers(data);
       }
     } catch (err) {
@@ -1379,7 +1398,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/stores/${storeId}/employees`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setEmployees(data);
       }
     } catch (err) {
@@ -1392,7 +1411,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/stores/${storeId}/attendance`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setAttendance(data);
       }
     } catch (err) {
@@ -1407,7 +1426,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/ai/suggest-product?name=${encodeURIComponent(productName)}`);
       if (response.ok) {
-        const suggested = await response.json();
+        const suggested = await readJsonResponse<any>(response);
         if (editingProduct) {
           setEditingProduct(prev => prev ? { ...prev, ...suggested } : null);
         } else {
@@ -1528,7 +1547,7 @@ export default function App() {
       });
 
       if (!response.ok) throw new Error("Failed to record transaction");
-      const createdSale = await response.json();
+      const createdSale = await readJsonResponse<any>(response);
       
       // Update local products list (deduct stock)
       setProducts(prev => prev.map(p => {
@@ -1589,7 +1608,7 @@ export default function App() {
       });
 
       if (!response.ok) throw new Error("Failed to add product");
-      const createdProd = await response.json();
+      const createdProd = await readJsonResponse<any>(response);
       setProducts(prev => [createdProd, ...prev]);
       setShowAddProduct(false);
       setNewProductForm({
@@ -1642,7 +1661,7 @@ export default function App() {
       });
 
       if (!response.ok) throw new Error("Failed to update product");
-      const updatedProd = await response.json();
+      const updatedProd = await readJsonResponse<any>(response);
       setProducts(prev => prev.map(p => p.id === updatedProd.id ? updatedProd : p));
       setEditingProduct(null);
     } catch (err) {
@@ -1662,7 +1681,7 @@ export default function App() {
         body: JSON.stringify(supplierForm)
       });
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setSuppliers(prev => [...prev, data]);
         setShowAddSupplier(false);
         setSupplierForm({ name: "", phone: "", email: "", address: "", outstanding_balance: 0 });
@@ -1702,7 +1721,7 @@ export default function App() {
         body: JSON.stringify(employeeForm)
       });
       if (response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse<any>(response);
         setEmployees(prev => [...prev, data]);
         setShowAddEmployee(false);
         setEmployeeForm({ name: "", role: "Cashier", phone: "", salary: 0, commission: 0 });
@@ -1740,7 +1759,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/api/stores/${store.id}/backup`);
       if (response.ok) {
-        const dump = await response.json();
+        const dump = await readJsonResponse<any>(response);
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dump, null, 2));
         const downloadAnchor = document.createElement("a");
         downloadAnchor.setAttribute("href", dataStr);
@@ -1777,7 +1796,7 @@ export default function App() {
           // Refetch products list
           const pResponse = await fetch(`${BACKEND_URL}/api/stores/${store.id}`);
           if (pResponse.ok) {
-            const data = await pResponse.json();
+            const data = await readJsonResponse<any>(pResponse);
             setProducts(data.products || []);
           }
         } else {
@@ -3583,7 +3602,7 @@ export default function App() {
                               body: JSON.stringify({ name, location: loc })
                             });
                             if (res.ok) {
-                              const newW = await res.json();
+                              const newW = await readJsonResponse<any>(res);
                               setWarehousesList(prev => [...prev, newW]);
                               (e.target as any).reset();
                               alert("Warehouse successfully registered!");
@@ -3835,7 +3854,7 @@ export default function App() {
                                     await handleAddCashFlow("Outflow", Math.round(cost), "Purchase", "Auto AI restock");
                                     alert(`Restocked ${aiInsightsData.restock_suggestions.length} items. Logged outflow: ₹${Math.round(cost)}.`);
                                     const pRes = await fetch(`${BACKEND_URL}/api/stores/${store.id}`);
-                                    if (pRes.ok) { const d = await pRes.json(); setProducts(d.products || []); fetchAIInsights(store.id); }
+                                    if (pRes.ok) { const d = await readJsonResponse<any>(pRes); setProducts(d.products || []); fetchAIInsights(store.id); }
                                   }}
                                   className="btn btn-primary"
                                   style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
@@ -3967,7 +3986,7 @@ export default function App() {
                                   alert(`Successfully created bundle: [BUNDLE] ${bundleForm.name}!`);
                                   setBundleForm({ name: "", price: 0, items: [] });
                                   const pRes = await fetch(`${BACKEND_URL}/api/stores/${store.id}`);
-                                  if (pRes.ok) { const d = await pRes.json(); setProducts(d.products || []); }
+                                  if (pRes.ok) { const d = await readJsonResponse<any>(pRes); setProducts(d.products || []); }
                                 }
                               } catch (err) {
                                 console.error(err);

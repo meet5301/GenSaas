@@ -21,7 +21,7 @@ npm run dev
 npm run build
 ```
 
-The root npm workspace exposes `dev`, `build`, `lint`, and `preview` scripts so you can run them without changing into a nested folder. Configure `frontend/.env` using `frontend/.env.example` if your API is not at `http://127.0.0.1:8000`.
+The root npm workspace exposes `dev`, `build`, `lint`, and `preview` scripts so you can run them without changing into a nested folder. Copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_URL` to the backend URL. Local development defaults to `http://127.0.0.1:8000`.
 
 ## Backend
 
