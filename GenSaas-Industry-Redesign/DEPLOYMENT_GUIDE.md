@@ -19,7 +19,7 @@ This repository contains a full-stack **FastAPI Backend** and **React Frontend (
 
 ## Step 1: Deploy Backend to Google Cloud Run
 
-1. Open terminal in `Saas-main/backend`.
+1. Open terminal in `backend`.
 2. Run the deployment command (which builds the Docker container and deploys it automatically):
 
 ```bash
@@ -39,7 +39,7 @@ gcloud run deploy gensaas-backend \
 
 ## Step 2: Deploy Frontend to Google Cloud Run
 
-1. Open terminal in `Saas-main/frontend`.
+1. Open terminal in `frontend`.
 2. Deploy the frontend container passing your backend URL as an argument:
 
 ```bash
@@ -66,7 +66,7 @@ Google's Firebase Hosting offers a free global CDN for static React sites:
    ```bash
    firebase login
    ```
-3. In `Saas-main/frontend`, set `.env.production`:
+3. In `frontend`, set `.env.production`:
    ```env
    VITE_API_URL=https://gensaas-backend-xyz-uc.a.run.app
    ```

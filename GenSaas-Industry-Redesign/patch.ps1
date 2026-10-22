@@ -1,4 +1,4 @@
-$file = 'c:\Users\Meet\Desktop\New folder\Saas-main\frontend\src\App.tsx'
+$file = Join-Path $PSScriptRoot 'frontend\src\App.tsx'
 $lines = Get-Content $file
 $before = $lines[0..3158] -join "`n"
 $after  = $lines[3227..($lines.Length-1)] -join "`n"
